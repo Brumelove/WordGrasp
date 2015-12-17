@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import processing.core.*;
+import TUIO.*;
 
 public class Sketch extends PApplet {
 
@@ -17,6 +18,24 @@ public class Sketch extends PApplet {
     ConfigLoaderSaver config = new ConfigLoaderSaver();
     HashMap<String, Multimap<String, String>> currentProfiles = new HashMap<>();
     HashMap<String, String> saves;
+    
+    //// TUIO ////
+    
+    TuioProcessing tuioClient;
+
+    float cursor_size = 15;
+    float object_size = 60;
+    float table_size = 760;
+    float scale_factor = 1;
+    PFont font;
+
+    boolean verbose = false;
+    boolean callback = true;
+    
+    //////////////
+    
+    boolean init = false;
+    String word = "";
 
     @Override
     public void settings() {
@@ -35,11 +54,70 @@ public class Sketch extends PApplet {
         welcome = loadFont("ArialMT-48.vlw");
         textFont(welcome);
         time = millis();
+        
+        //// TUIO ////
+        
+        if (!callback) {
+          frameRate(60);
+          loop();
+        } else noLoop();
+        
+        font = createFont("Arial", 18);
+        scale_factor = height/table_size;
+        tuioClient  = new TuioProcessing(this);
+        
+        //////////////
+        
     }
 
     @Override
     public void draw() {
 
+        //// TUIO ////
+        
+        background(255);
+        textFont(font,18*scale_factor);
+        float obj_size = object_size*scale_factor; 
+        float cur_size = cursor_size*scale_factor; 
+
+        ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+        for (int i=0;i<tuioObjectList.size();i++) {
+            TuioObject tobj = tuioObjectList.get(i);
+            stroke(0);
+            fill(0,0,0);
+            pushMatrix();
+            translate(tobj.getScreenX(width),tobj.getScreenY(height));
+            rotate(tobj.getAngle());
+            rect(-obj_size/2,-obj_size/2,obj_size,obj_size);
+            popMatrix();
+            fill(255);
+            text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
+        }
+
+        ArrayList<TuioCursor> tuioCursorList = tuioClient.getTuioCursorList();
+        for (int i=0;i<tuioCursorList.size();i++) {
+            TuioCursor tcur = tuioCursorList.get(i);
+            ArrayList<TuioPoint> pointList = tcur.getPath();
+
+            if (pointList.size()>0) {
+                stroke(0,0,255);
+                TuioPoint start_point = pointList.get(0);
+                for (int j=0;j<pointList.size();j++) {
+                    TuioPoint end_point = pointList.get(j);
+                    line(start_point.getScreenX(width),start_point.getScreenY(height),end_point.getScreenX(width),end_point.getScreenY(height));
+                    start_point = end_point;
+                }
+
+                stroke(192,192,192);
+                fill(192,192,192);
+                ellipse( tcur.getScreenX(width), tcur.getScreenY(height),cur_size,cur_size);
+                fill(0);
+                text(""+ tcur.getCursorID(),  tcur.getScreenX(width)-5,  tcur.getScreenY(height)+5);
+            }
+        }
+         
+        //////////////
+        
         if (stage == 0) {
             textAlign(CENTER);
             text("WELCOME", width / 2, height / 2);
@@ -70,7 +148,8 @@ public class Sketch extends PApplet {
 
         } else if (stage == 2) {
 
-            choose1Por2PMode();
+            //choose1Por2PMode();
+            FillInTheBlanksGame();
 
         }
 
@@ -117,35 +196,65 @@ public class Sketch extends PApplet {
 
     public void FillInTheBlanksGame() {
 
-        HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
+        int state = 0;
         
-        //Choose theme
-        //Start game
-        
-        String game = "fillintheblanks";
-        String theme = "animals";
-        
-        HashMap<String, String> wordImages = themeImageWords.get(theme);
-
-        String word = "cat";
-        
-        int imageFrameWidth = 300;
-        int imageFrameHeight = 300;
-        
-        PImage img = loadImage(wordImages.get(word));
-        if (img.width > img.height) imageFrameHeight = (int)((float)((float)imageFrameWidth/img.width)*img.height);
-        else if (img.width < img.height) imageFrameWidth = (int)((float)((float)imageFrameHeight/img.height)*img.width);
-        
-        image(img, (width/2)-imageFrameWidth, (height/2)-(imageFrameHeight/2)-80, imageFrameWidth, imageFrameHeight);
-        
-        PImage letterBack = loadImage("/images/letter_background_default.png");
+        PImage letterBackDefault = null;
+        PImage letterBackCorrect = null;
+        PImage letterBackTurn = null;
+        PImage letterBackIncorrect = null;
         
         int letterBackSize = 100;
         
+        if (!init) {
+        
+            init = true;
+            
+            HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
+
+            //Choose theme
+            //Start game
+
+            String game = "fillintheblanks";
+            String theme = "animals";
+
+            HashMap<String, String> wordImages = themeImageWords.get(theme);
+
+            word = "cat";
+
+            int imageFrameWidth = 300;
+            int imageFrameHeight = 300;
+
+            PImage img = loadImage(wordImages.get(word));
+            if (img.width > img.height) imageFrameHeight = (int)((float)((float)imageFrameWidth/img.width)*img.height);
+            else if (img.width < img.height) imageFrameWidth = (int)((float)((float)imageFrameHeight/img.height)*img.width);
+
+            image(img, (width/2)-imageFrameWidth, (height/2)-(imageFrameHeight/2)-80, imageFrameWidth, imageFrameHeight);
+
+            letterBackDefault = loadImage("/images/letter_background_default.png");
+            letterBackCorrect = loadImage("/images/letter_background_correct.png");
+            letterBackTurn = loadImage("/images/letter_background_turn.png");
+            letterBackIncorrect = loadImage("/images/letter_background_incorrect.png");
+            
+        }
+        
         for(int i = 0; i < word.length(); i++) {
+
+            state = checkState(i,word);
             
-            image(letterBack, (width/2)-(letterBackSize/2), (height/2)-(letterBackSize/2)+20, 100, 100);
-            
+            switch(state) {
+
+                case 0: image(letterBackDefault, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
+                break;
+                case 1: image(letterBackCorrect, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
+                break;
+                case 2: image(letterBackTurn, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
+                break;
+                case 3: image(letterBackIncorrect, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
+                break;
+                    
+            }
+
+
         }
         
         
@@ -176,6 +285,14 @@ public class Sketch extends PApplet {
         //He can view associated picture and an example sentence where that word is used
     }
 
+    public int checkState(int index, String word) {
+        
+        //checkFiducials();
+        
+        return 0;
+        
+    }
+    
     public List<String> checkFiducial() {
 
         //check it
@@ -199,5 +316,59 @@ public class Sketch extends PApplet {
         return result; //eg
 
     }
+    
+    //// TUIO ////
+    
+    void addTuioObject(TuioObject tobj) {
+      if (verbose) println("add obj "+tobj.getSymbolID()+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
+    }
 
+    void updateTuioObject (TuioObject tobj) {
+      if (verbose) println("set obj "+tobj.getSymbolID()+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
+              +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
+    }
+
+    void removeTuioObject(TuioObject tobj) {
+      if (verbose) println("del obj "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
+    }
+
+    void addTuioCursor(TuioCursor tcur) {
+      if (verbose) println("add cur "+tcur.getCursorID()+" ("+tcur.getSessionID()+ ") " +tcur.getX()+" "+tcur.getY());
+      //redraw();
+    }
+
+    void updateTuioCursor (TuioCursor tcur) {
+      if (verbose) println("set cur "+tcur.getCursorID()+" ("+tcur.getSessionID()+ ") " +tcur.getX()+" "+tcur.getY()
+              +" "+tcur.getMotionSpeed()+" "+tcur.getMotionAccel());
+      //redraw();
+    }
+
+    void removeTuioCursor(TuioCursor tcur) {
+      if (verbose) println("del cur "+tcur.getCursorID()+" ("+tcur.getSessionID()+")");
+      //redraw()
+    }
+    
+    void addTuioBlob(TuioBlob tblb) {
+      if (verbose) println("add blb "+tblb.getBlobID()+" ("+tblb.getSessionID()+") "+tblb.getX()+" "+tblb.getY()+" "+tblb.getAngle()+" "+tblb.getWidth()+" "+tblb.getHeight()+" "+tblb.getArea());
+      //redraw();
+    }
+
+    void updateTuioBlob (TuioBlob tblb) {
+      if (verbose) println("set blb "+tblb.getBlobID()+" ("+tblb.getSessionID()+") "+tblb.getX()+" "+tblb.getY()+" "+tblb.getAngle()+" "+tblb.getWidth()+" "+tblb.getHeight()+" "+tblb.getArea()
+              +" "+tblb.getMotionSpeed()+" "+tblb.getRotationSpeed()+" "+tblb.getMotionAccel()+" "+tblb.getRotationAccel());
+      //redraw()
+    }
+
+    void removeTuioBlob(TuioBlob tblb) {
+      if (verbose) println("del blb "+tblb.getBlobID()+" ("+tblb.getSessionID()+")");
+      //redraw()
+    }
+
+    void refresh(TuioTime frameTime) {
+      if (verbose) println("frame #"+frameTime.getFrameID()+" ("+frameTime.getTotalMilliseconds()+")");
+      if (callback) redraw();
+    }
+
+    //////////////
+    
 }
