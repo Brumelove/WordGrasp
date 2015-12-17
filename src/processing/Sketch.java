@@ -319,52 +319,52 @@ public class Sketch extends PApplet {
     
     //// TUIO ////
     
-    void addTuioObject(TuioObject tobj) {
+    public void addTuioObject(TuioObject tobj) {
       if (verbose) println("add obj "+tobj.getSymbolID()+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
     }
 
-    void updateTuioObject (TuioObject tobj) {
+    public void updateTuioObject (TuioObject tobj) {
       if (verbose) println("set obj "+tobj.getSymbolID()+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
               +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
     }
 
-    void removeTuioObject(TuioObject tobj) {
+    public void removeTuioObject(TuioObject tobj) {
       if (verbose) println("del obj "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
     }
 
-    void addTuioCursor(TuioCursor tcur) {
+    public void addTuioCursor(TuioCursor tcur) {
       if (verbose) println("add cur "+tcur.getCursorID()+" ("+tcur.getSessionID()+ ") " +tcur.getX()+" "+tcur.getY());
       //redraw();
     }
 
-    void updateTuioCursor (TuioCursor tcur) {
+    public void updateTuioCursor (TuioCursor tcur) {
       if (verbose) println("set cur "+tcur.getCursorID()+" ("+tcur.getSessionID()+ ") " +tcur.getX()+" "+tcur.getY()
               +" "+tcur.getMotionSpeed()+" "+tcur.getMotionAccel());
       //redraw();
     }
 
-    void removeTuioCursor(TuioCursor tcur) {
+    public void removeTuioCursor(TuioCursor tcur) {
       if (verbose) println("del cur "+tcur.getCursorID()+" ("+tcur.getSessionID()+")");
       //redraw()
     }
     
-    void addTuioBlob(TuioBlob tblb) {
+    public void addTuioBlob(TuioBlob tblb) {
       if (verbose) println("add blb "+tblb.getBlobID()+" ("+tblb.getSessionID()+") "+tblb.getX()+" "+tblb.getY()+" "+tblb.getAngle()+" "+tblb.getWidth()+" "+tblb.getHeight()+" "+tblb.getArea());
       //redraw();
     }
 
-    void updateTuioBlob (TuioBlob tblb) {
+    public void updateTuioBlob (TuioBlob tblb) {
       if (verbose) println("set blb "+tblb.getBlobID()+" ("+tblb.getSessionID()+") "+tblb.getX()+" "+tblb.getY()+" "+tblb.getAngle()+" "+tblb.getWidth()+" "+tblb.getHeight()+" "+tblb.getArea()
               +" "+tblb.getMotionSpeed()+" "+tblb.getRotationSpeed()+" "+tblb.getMotionAccel()+" "+tblb.getRotationAccel());
       //redraw()
     }
 
-    void removeTuioBlob(TuioBlob tblb) {
+    public void removeTuioBlob(TuioBlob tblb) {
       if (verbose) println("del blb "+tblb.getBlobID()+" ("+tblb.getSessionID()+")");
       //redraw()
     }
 
-    void refresh(TuioTime frameTime) {
+    public void refresh(TuioTime frameTime) {
       if (verbose) println("frame #"+frameTime.getFrameID()+" ("+frameTime.getTotalMilliseconds()+")");
       if (callback) redraw();
     }
