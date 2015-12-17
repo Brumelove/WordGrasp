@@ -1,0 +1,9 @@
+#points
+-348
+#vocablist
+-cat
+-dog
+-fish
+-crab
+-bird
+-mouse
