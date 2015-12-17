@@ -73,9 +73,9 @@ public class Sketch extends PApplet {
     @Override
     public void draw() {
 
-        //// TUIO ////
+        image(menuImage, 0, 0, screensizex, screensizey);
         
-        background(255);
+        //// TUIO ////
         textFont(font,18*scale_factor);
         float obj_size = object_size*scale_factor; 
         float cur_size = cursor_size*scale_factor; 
@@ -93,29 +93,7 @@ public class Sketch extends PApplet {
             fill(255);
             text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
         }
-
-        ArrayList<TuioCursor> tuioCursorList = tuioClient.getTuioCursorList();
-        for (int i=0;i<tuioCursorList.size();i++) {
-            TuioCursor tcur = tuioCursorList.get(i);
-            ArrayList<TuioPoint> pointList = tcur.getPath();
-
-            if (pointList.size()>0) {
-                stroke(0,0,255);
-                TuioPoint start_point = pointList.get(0);
-                for (int j=0;j<pointList.size();j++) {
-                    TuioPoint end_point = pointList.get(j);
-                    line(start_point.getScreenX(width),start_point.getScreenY(height),end_point.getScreenX(width),end_point.getScreenY(height));
-                    start_point = end_point;
-                }
-
-                stroke(192,192,192);
-                fill(192,192,192);
-                ellipse( tcur.getScreenX(width), tcur.getScreenY(height),cur_size,cur_size);
-                fill(0);
-                text(""+ tcur.getCursorID(),  tcur.getScreenX(width)-5,  tcur.getScreenY(height)+5);
-            }
-        }
-         
+        
         //////////////
         
         if (stage == 0) {
