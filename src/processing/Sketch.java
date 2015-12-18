@@ -15,9 +15,14 @@ public class Sketch extends PApplet {
     int screensizex, screensizey, stage;
     int time;
     int welcomeDelay = 3000;
+    
     ConfigLoaderSaver config = new ConfigLoaderSaver();
-    HashMap<String, Multimap<String, String>> currentProfiles = new HashMap<>();
+    HashMap<String, Multimap<String, String>> currentProfiles = config.loadProfiles();
     HashMap<String, String> saves;
+    HashMap<String, HashMap<String, String>> fillInTheBlanks_ThemeImageWords = config.loadFillInTheBlanks();
+    
+    String word = "";
+    PImage img = null;
     
     //// TUIO ////
     
@@ -35,7 +40,6 @@ public class Sketch extends PApplet {
     //////////////
     
     boolean init = false;
-    String word = "";
 
     @Override
     public void settings() {
@@ -152,7 +156,7 @@ public class Sketch extends PApplet {
 
     public void chooseProfile() {
 
-        HashMap<String, Multimap<String, String>> profiles = config.loadProfiles();
+        //HashMap<String, Multimap<String, String>> profiles = config.loadProfiles();
 
         //print profile names with letters
         //user can scroll through profile names to choose or create a new profile
@@ -176,62 +180,29 @@ public class Sketch extends PApplet {
 
         int state = 0;
         
-        PImage letterBackDefault = null;
-        PImage letterBackCorrect = null;
-        PImage letterBackTurn = null;
-        PImage letterBackIncorrect = null;
-        
-        int letterBackSize = 100;
-        
         if (!init) {
         
             init = true;
             
-            HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
+            //HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
 
             //Choose theme
             //Start game
 
             String game = "fillintheblanks";
             String theme = "animals";
-
-            HashMap<String, String> wordImages = themeImageWords.get(theme);
-
             word = "cat";
 
-            int imageFrameWidth = 300;
-            int imageFrameHeight = 300;
-
-            PImage img = loadImage(wordImages.get(word));
-            if (img.width > img.height) imageFrameHeight = (int)((float)((float)imageFrameWidth/img.width)*img.height);
-            else if (img.width < img.height) imageFrameWidth = (int)((float)((float)imageFrameHeight/img.height)*img.width);
-
-            image(img, (width/2)-imageFrameWidth, (height/2)-(imageFrameHeight/2)-80, imageFrameWidth, imageFrameHeight);
-
-            letterBackDefault = loadImage("/images/letter_background_default.png");
-            letterBackCorrect = loadImage("/images/letter_background_correct.png");
-            letterBackTurn = loadImage("/images/letter_background_turn.png");
-            letterBackIncorrect = loadImage("/images/letter_background_incorrect.png");
+            HashMap<String, String> wordImages = fillInTheBlanks_ThemeImageWords.get(theme);
+            img = loadImage(wordImages.get(word),"jpg");
             
         }
         
+        createImageContainer(300,300);
+        
         for(int i = 0; i < word.length(); i++) {
 
-            state = checkState(i,word);
-            
-            switch(state) {
-
-                case 0: image(letterBackDefault, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
-                break;
-                case 1: image(letterBackCorrect, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
-                break;
-                case 2: image(letterBackTurn, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
-                break;
-                case 3: image(letterBackIncorrect, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*i), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
-                break;
-                    
-            }
-
+            createLetterContainer(i,checkState(i,word),100,50);
 
         }
         
@@ -268,6 +239,37 @@ public class Sketch extends PApplet {
         //checkFiducials();
         
         return 0;
+        
+    }
+    
+    public void createImageContainer(int imageFrameWidth, int imageFrameHeight) {
+        
+        if (img.width > img.height) imageFrameHeight = (int)((float)((float)imageFrameWidth/img.width)*img.height);
+        else if (img.width < img.height) imageFrameWidth = (int)((float)((float)imageFrameHeight/img.height)*img.width);
+
+        image(img, (width/2)-(imageFrameWidth/2), (height/2)-(imageFrameHeight/2)-150, imageFrameWidth, imageFrameHeight);
+        
+    }
+    
+    public void createLetterContainer(int index, int state, int letterBackSize, int letterBackSpacing) {
+        
+        String imagePath = "";
+        
+        switch(state) {
+            
+            case 0: imagePath = "/images/letter_background_default.png";
+                break;
+            case 1: imagePath = "/images/letter_background_correct.png";
+                break;
+            case 2: imagePath = "/images/letter_background_turn.png";
+                break;
+            case 3: imagePath = "/images/letter_background_incorrect.png";
+                break;
+            
+        }
+        
+        PImage letterBack = loadImage(imagePath);
+        image(letterBack, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*index), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
         
     }
     
