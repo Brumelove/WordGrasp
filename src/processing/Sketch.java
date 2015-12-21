@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import processing.core.*;
 import TUIO.*;
+import java.util.Map;
 
 public class Sketch extends PApplet {
 
@@ -16,10 +17,13 @@ public class Sketch extends PApplet {
     int time;
     int welcomeDelay = 3000;
     
+    HashMap<Integer, List<String>> fiducialDictionary = new HashMap();
+    
     ConfigLoaderSaver config = new ConfigLoaderSaver();
     HashMap<String, Multimap<String, String>> currentProfiles = config.loadProfiles();
     HashMap<String, String> saves;
     HashMap<String, HashMap<String, String>> fillInTheBlanks_ThemeImageWords = config.loadFillInTheBlanks();
+    HashMap<Integer, List<Float>> fillInTheBlanks_gapCoords = new HashMap();
     
     String word = "";
     PImage img = null;
@@ -39,7 +43,7 @@ public class Sketch extends PApplet {
     
     //////////////
     
-    boolean init = false;
+    boolean init = true;
 
     @Override
     public void settings() {
@@ -58,6 +62,11 @@ public class Sketch extends PApplet {
         welcome = loadFont("ArialMT-48.vlw");
         textFont(welcome);
         time = millis();
+        
+        for(int i = 0; i < 26; i++) { //0 - 51
+            fiducialDictionary.put(i,Arrays.asList("LETTER", Character.toString((char)(i+65)), "RED"));
+            fiducialDictionary.put(i+26,Arrays.asList("LETTER", Character.toString((char)(i+65)), "BLUE"));
+        }
         
         //// TUIO ////
         
@@ -97,7 +106,6 @@ public class Sketch extends PApplet {
             fill(255);
             text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
         }
-        
         //////////////
         
         if (stage == 0) {
@@ -180,18 +188,18 @@ public class Sketch extends PApplet {
 
         int state = 0;
         
-        if (!init) {
+        if (init) {
         
-            init = true;
-            
             //HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
 
             //Choose theme
             //Start game
 
+            fillInTheBlanks_gapCoords.clear();
+            
             String game = "fillintheblanks";
             String theme = "animals";
-            word = "cat";
+            word = "lion";
 
             HashMap<String, String> wordImages = fillInTheBlanks_ThemeImageWords.get(theme);
             img = loadImage(wordImages.get(word),"jpg");
@@ -200,12 +208,10 @@ public class Sketch extends PApplet {
         
         createImageContainer(300,300);
         
-        for(int i = 0; i < word.length(); i++) {
-
-            createLetterContainer(i,checkState(i,word),100,50);
-
-        }
+        for(int i = 0; i < word.length(); i++)
+            createLetterContainer(i,checkState(i,word),100,30);
         
+        init = false;
         
         //Display word and image (preferably not already in vocab list)
         //Check if word is correct
@@ -232,14 +238,6 @@ public class Sketch extends PApplet {
 
         //User scrolls through his own vocab list
         //He can view associated picture and an example sentence where that word is used
-    }
-
-    public int checkState(int index, String word) {
-        
-        //checkFiducials();
-        
-        return 0;
-        
     }
     
     public void createImageContainer(int imageFrameWidth, int imageFrameHeight) {
@@ -269,31 +267,73 @@ public class Sketch extends PApplet {
         }
         
         PImage letterBack = loadImage(imagePath);
-        image(letterBack, (width/2)-(letterBackSize/2)-(letterBackSize*(word.length()/2))+(letterBackSize*index), (height/2)-(letterBackSize/2)+100, letterBackSize, letterBackSize);
+        
+        float size = letterBackSize;
+        /*float space = letterBackSpacing;
+        
+        float centreSpace = 0;
+        if ((word.length())%2 == 0) centreSpace = space;
+        */
+        
+        float letterWidth = (width/2)-(size*(word.length()/2))+(size*index);
+            if ((word.length())%2 != 0) letterWidth -= (size/2);
+        float letterHeight = (height/2)-(size/2)+100;
+        
+        image(letterBack, letterWidth, letterHeight, size, size);
+        
+        if (init)
+            fillInTheBlanks_gapCoords.put(index, Arrays.asList(letterWidth,letterHeight,size,size));
+        
+    }
+
+    public int checkState(int index, String word) {
+        
+        HashMap<List<String>,List<Float>> detected = checkFiducials();
+        
+        for (Map.Entry<List<String>,List<Float>> entry : detected.entrySet()) {
+            List<String> key = entry.getKey();
+            List<Float> value = entry.getValue();
+            
+            List<Float> gapCoords = fillInTheBlanks_gapCoords.get(index);
+                
+            if (((value.get(0) > gapCoords.get(0)) && (value.get(0) < (gapCoords.get(0)+gapCoords.get(2)))) && // X Coordinate
+                ((value.get(1) > gapCoords.get(1)) && (value.get(1) < (gapCoords.get(1)+gapCoords.get(3))))) { // Y Coordinate
+
+                if (key.get(0).equals("LETTER") && key.get(1).equals(word.toUpperCase().charAt(index))) { // Match
+
+                    String colour = key.get(2);
+
+                    if ((value.get(2) > 20) && (value.get(2) > -20)) return 1; //Proper Alignment
+                    else return 2;
+
+                } else return 3;
+
+            }
+            
+        }
+        
+        return 0;
         
     }
     
     public List<String> checkFiducial() {
 
-        //check it
+        HashMap<List<String>,List<Float>> detected = checkFiducials();
+        
+        
         return Arrays.asList("LETTER", "A", "RED"); //eg
 
     }
 
-    public HashMap<int[], List<String>> checkFiducials() {
+    public HashMap<List<String>,List<Float>> checkFiducials() {
+        
+        HashMap<List<String>,List<Float>> detected = new HashMap();
+        
+        ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+        for (int i=0;i<tuioObjectList.size();i++)
+            detected.put(fiducialDictionary.get(tuioObjectList.get(i).getSymbolID()),Arrays.asList(tuioObjectList.get(i).getX(),tuioObjectList.get(i).getY(),tuioObjectList.get(i).getAngle()));
 
-        //check it
-        int[] coords = new int[2];
-
-        coords[0] = 0; //width
-        coords[1] = 0; //height
-
-        List<String> fiducial = Arrays.asList("LETTER", "A", "RED");
-
-        HashMap<int[], List<String>> result = new HashMap<>();
-        result.put(coords, fiducial);
-
-        return result; //eg
+        return detected; //eg
 
     }
     
