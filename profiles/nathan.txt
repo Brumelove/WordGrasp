@@ -1,9 +1,5 @@
 #points
--348
+-30
 #vocablist
 -cat
--dog
--fish
--crab
--bird
--mouse
+

@@ -20,12 +20,16 @@ public class Sketch extends PApplet {
     HashMap<Integer, List<String>> fiducialDictionary = new HashMap();
     
     ConfigLoaderSaver config = new ConfigLoaderSaver();
-    HashMap<String, Multimap<String, String>> currentProfiles = config.loadProfiles();
+    List<String>currentProfiles;
     HashMap<String, String> saves;
-    HashMap<String, HashMap<String, String>> fillInTheBlanks_ThemeImageWords = config.loadFillInTheBlanks();
+    HashMap<String, String> fillInTheBlanks_ThemeImageWords = new HashMap();
     HashMap<Integer, List<Float>> fillInTheBlanks_gapCoords = new HashMap();
+    List<String> fillInTheBlanks_WordList = new ArrayList();
     
+    String theme = "";
     String word = "";
+    HashMap<String,String>profilesColours = new HashMap();
+    HashMap<String,String>wordGuessed = new HashMap();
     PImage img = null;
     
     //// TUIO ////
@@ -44,6 +48,7 @@ public class Sketch extends PApplet {
     //////////////
     
     boolean init = true;
+    boolean next = true;
 
     @Override
     public void settings() {
@@ -141,6 +146,10 @@ public class Sketch extends PApplet {
         } else if (stage == 2) {
 
             //choose1Por2PMode();
+            
+            profilesColours = new HashMap();
+            profilesColours.put("nathan","RED");
+            
             FillInTheBlanksGame();
 
         }
@@ -199,33 +208,52 @@ public class Sketch extends PApplet {
     }
 
     public void FillInTheBlanksGame() {
-
-        int state = 0;
+        
+        List<String>profiles = new ArrayList(profilesColours.keySet());
+        wordGuessed.clear();
         
         if (init) {
-        
-            //HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
-
-            //Choose theme
-            //Start game
-
-            fillInTheBlanks_gapCoords.clear();
             
-            String game = "fillintheblanks";
-            String theme = "animals";
-            word = "lion";
-
-            HashMap<String, String> wordImages = fillInTheBlanks_ThemeImageWords.get(theme);
-            img = loadImage(wordImages.get(word),"jpg");
+            theme = "animals"; //Choose theme
+            fillInTheBlanks_ThemeImageWords = config.loadFillInTheBlanks().get(theme);
+            fillInTheBlanks_WordList = config.getIdealWordOrder(profiles,new ArrayList(fillInTheBlanks_ThemeImageWords.keySet()));
+            init = false;
+            
+        }
+        
+        if (next) {
+            
+            if (fillInTheBlanks_WordList.isEmpty()) System.exit(0);
+            word = fillInTheBlanks_WordList.get(0);
+            img = loadImage(fillInTheBlanks_ThemeImageWords.get(word),"jpg");
+            fillInTheBlanks_gapCoords.clear();
             
         }
         
         createImageContainer(300,300);
         
-        for(int i = 0; i < word.length(); i++)
-            createLetterContainer(i,word,100,30);
+        next = true;
         
-        init = false;
+        for(int i = 0; i < word.length(); i++)
+            if ((createLetterContainer(i,word,100,30) != 1) && (next == true)) next = false;
+        
+        if (next) {
+        
+            for(String profile : profiles) {
+                
+                String colour = profilesColours.get(profile);
+                int points = 0;
+                
+                for (String value : wordGuessed.values())
+                    if (value.equals(colour)) points++;
+                
+                config.addPointsAddWord(profile,points*10,word);
+                
+            }
+            
+            fillInTheBlanks_WordList.remove(word);
+            
+        } //next word
         
         //Display word and image (preferably not already in vocab list)
         //Check if word is correct
@@ -263,23 +291,17 @@ public class Sketch extends PApplet {
         
     }
     
-    public void createLetterContainer(int index, String word, int letterBackSize, int letterBackSpacing) {
+    public int createLetterContainer(int index, String word, int letterBackSize, int letterBackSpacing) {
         
         String imagePath = "";
         
         float size = letterBackSize;
-        /*float space = letterBackSpacing;
-        
-        float centreSpace = 0;
-        if ((word.length())%2 == 0) centreSpace = space;
-        */
         
         float letterWidth = (width/2)-(size*(word.length()/2))+(size*index);
             if ((word.length())%2 != 0) letterWidth -= (size/2);
         float letterHeight = (height/2)-(size/2)+100;
         
-        if (init)
-            fillInTheBlanks_gapCoords.put(index, Arrays.asList(letterWidth,letterHeight,size,size));
+        fillInTheBlanks_gapCoords.put(index, Arrays.asList(letterWidth,letterHeight,size,size));
         
         
         int state = checkState(index,word);
@@ -301,6 +323,8 @@ public class Sketch extends PApplet {
         
         image(letterBack, letterWidth, letterHeight, size, size);
         
+        return state;
+        
     }
 
     public int checkState(int index, String word) {
@@ -318,9 +342,10 @@ public class Sketch extends PApplet {
 
                 if (key.get(0).equals("LETTER") && key.get(1).equals(""+word.toUpperCase().charAt(index))) { // Match
 
-                    String colour = key.get(2);
-
-                    if ((value.get(2) > 6) || (value.get(2) < 0.3)) return 1; //Proper Alignment
+                    if ((value.get(2) > 6) || (value.get(2) < 0.3)) {
+                        wordGuessed.put(key.get(1),key.get(2));
+                        return 1;
+                    } //Proper Alignment
                     else return 2;
 
                 } else return 3;

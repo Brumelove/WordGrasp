@@ -10,17 +10,20 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ConfigLoaderSaver {
 
-    public HashMap<String, Multimap<String, String>> loadProfiles() {
+    public HashMap<String, Multimap<String, String>> loadAllProfiles() {
 
-        HashMap<String, Multimap<String, String>> saves = new HashMap<String, Multimap<String, String>>();
+        HashMap<String, Multimap<String, String>> saves = new HashMap();
 
         String projectDir = new File("").getAbsolutePath();
 
@@ -61,6 +64,71 @@ public class ConfigLoaderSaver {
             saves.put(name, save);
         }
         return saves;
+    }
+    
+    public Multimap<String, String> loadProfile(String profileName) { 
+        return loadAllProfiles().get(profileName);
+    }
+    
+    public List<Multimap<String, String>> loadProfiles(List<String>profileNames) { 
+        
+        HashMap<String, Multimap<String, String>> allProfiles = loadAllProfiles();
+        List<Multimap<String, String>> profiles = new ArrayList();
+        
+        for (String profileName : profileNames)
+            profiles.add(allProfiles.get(profileName));
+        
+        return profiles;
+        
+    }
+    
+    public List<String> getIdealWordOrder(List<String>profileNames, List<String>words) {
+        
+        List<Multimap<String, String>> profiles = loadProfiles(profileNames);
+        
+        List<List<String>> vocabLists = new ArrayList();
+        
+        for (Multimap<String, String> profile : profiles)
+            vocabLists.add(getVocabList(profile, words));
+        
+        HashMap<String,Integer> similarities = new HashMap();
+        
+        for (List<String> vocabList : vocabLists) {
+            
+            for (String word : vocabList) {
+                
+                if(similarities.get(word) == null)
+                    similarities.put(word, 1);
+                else similarities.put(word, similarities.get(word)+1);
+                
+            }
+            
+        }
+        
+        Map<String, Integer> sortedSimilarities = similarities.entrySet().stream()
+                                            .sorted(Map.Entry.comparingByValue())
+                                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                                                    (e1, e2) -> e1, LinkedHashMap::new));
+        
+        List<String> idealWordOrder = new ArrayList();
+        
+        idealWordOrder.addAll(words);
+        idealWordOrder.removeAll(new ArrayList(sortedSimilarities.keySet()));
+        
+        for (String key : sortedSimilarities.keySet())
+            idealWordOrder.add(key);
+        
+        return idealWordOrder;
+        
+    }
+    
+    public List<String> getVocabList(Multimap<String, String> profile, List<String> words) {
+        
+        List<String> vocabList = new ArrayList(profile.get("vocablist"));
+        vocabList.retainAll(words);
+        
+        return vocabList;
+        
     }
     
     public HashMap<String, HashMap<String, String>> loadFillInTheBlanks() {
@@ -113,6 +181,19 @@ public class ConfigLoaderSaver {
         
     }
     
+    public void saveProfile(String profileName, int points, List<String> words) {
+        
+        String projectDir = new File("").getAbsolutePath();
+        words.remove("");
+        List<String> prefixedWords = words.stream().map(word -> "-"+word).collect(Collectors.toList());
+        prefixedWords.add("");
+        List<String> lines = new ArrayList(Arrays.asList("#points","-"+points,"#vocablist"));
+        lines.addAll(prefixedWords);
+        
+        saveTextFile(projectDir+"\\profiles\\"+profileName.toLowerCase()+".txt",lines);
+        
+    }
+    
     public List<String> loadTextFile(String dir) {
         
         List<String> lines = null;
@@ -122,6 +203,31 @@ public class ConfigLoaderSaver {
         } catch(IOException e){ e.printStackTrace(); }
         
         return lines;
+        
+    }
+    
+    public void addPointsAddWord(String profileName, int addPoints, String addWord) {
+        
+        Multimap<String, String> pointsWords = loadProfile(profileName);
+        
+        List<String> points = new ArrayList(pointsWords.get("points"));
+        List<String> words = new ArrayList(pointsWords.get("vocablist"));
+        
+        if (!words.contains(addWord))
+            words.add(addWord);
+        
+        saveProfile(profileName,(Integer.parseInt(points.get(0))+addPoints),words);
+        
+    }
+    
+    public void removePoints(String profileName, int subtractPoints) {
+        
+        Multimap<String, String> pointsWords = loadProfile(profileName);
+        
+        List<String> points = new ArrayList(pointsWords.get("points"));
+        List<String> words = new ArrayList(pointsWords.get("vocablist"));
+        
+        saveProfile(profileName,(Integer.parseInt(points.get(0))-subtractPoints),words);
         
     }
     
@@ -137,7 +243,7 @@ public class ConfigLoaderSaver {
         
         ConfigLoaderSaver conf = new ConfigLoaderSaver();
         
-        HashMap<String, Multimap<String, String>> profiles = conf.loadProfiles();
+        HashMap<String, Multimap<String, String>> profiles = conf.loadAllProfiles();
         
         profiles.forEach((k,v) -> System.out.println("key: "+k+" value:"+v));
         
