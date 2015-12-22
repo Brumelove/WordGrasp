@@ -216,7 +216,7 @@ public class Sketch extends PApplet {
             
             theme = "animals"; //Choose theme
             fillInTheBlanks_ThemeImageWords = config.loadFillInTheBlanks().get(theme);
-            fillInTheBlanks_WordList = config.getIdealWordOrder(profiles,new ArrayList(fillInTheBlanks_ThemeImageWords.keySet()));
+            fillInTheBlanks_WordList = config.getIdealWordOrder(profiles,new ArrayList(fillInTheBlanks_ThemeImageWords.keySet())); //List words and images (preferably not already in vocab list)
             init = false;
             
         }
@@ -237,9 +237,9 @@ public class Sketch extends PApplet {
         for(int i = 0; i < word.length(); i++)
             if ((createLetterContainer(i,word,100,30) != 1) && (next == true)) next = false;
         
-        if (next) {
+        if (next) { //Check if word is correct
         
-            for(String profile : profiles) {
+            for(String profile : profiles) { //If 2P Mode then check which fiducials belong to whom
                 
                 String colour = profilesColours.get(profile);
                 int points = 0;
@@ -255,9 +255,9 @@ public class Sketch extends PApplet {
             
         } //next word
         
-        //Display word and image (preferably not already in vocab list)
-        //Check if word is correct
-        //If 2P Mode then check which fiducials belong to whom
+        
+        
+        
         //Increment points accordingly and save to text file
         //Next word (10 words per session) + Extra bonus points for completing session
         
@@ -288,6 +288,41 @@ public class Sketch extends PApplet {
         else if (img.width < img.height) imageFrameWidth = (int)((float)((float)imageFrameHeight/img.height)*img.width);
 
         image(img, (width/2)-(imageFrameWidth/2), (height/2)-(imageFrameHeight/2)-150, imageFrameWidth, imageFrameHeight);
+        
+    }
+    
+    public int checkState(int index, String word) {
+        
+        HashMap<List<String>,List<Float>> detected = checkFiducials();
+        
+        for (Map.Entry<List<String>,List<Float>> entry : detected.entrySet()) {
+            
+            List<String> key = entry.getKey();
+            List<Float> value = entry.getValue();
+            
+            List<Float> gapCoords = fillInTheBlanks_gapCoords.get(index);
+                
+             if (((value.get(0) > gapCoords.get(0)) && (value.get(0) < (gapCoords.get(0)+gapCoords.get(2)))) && // X Coordinate
+                ((value.get(1) > gapCoords.get(1)) && (value.get(1) < (gapCoords.get(1)+gapCoords.get(3))))) { // Y Coordinate
+
+                if (key.get(0).equals("LETTER") && key.get(1).equals(""+word.toUpperCase().charAt(index))) { // Match
+
+                    if ((value.get(2) > 6) || (value.get(2) < 0.3)) { //Proper Alignment
+                        
+                        if (profilesColours.containsValue(key.get(2))) {
+                            wordGuessed.put(key.get(1),key.get(2));
+                            return 1;
+                        } else return 2; //Colour not used for current profiles
+                        
+                    } else return 2; //Incorrect letter alignment
+
+                } else return 3;
+
+            }
+            
+        }
+        
+        return 0;
         
     }
     
@@ -327,46 +362,6 @@ public class Sketch extends PApplet {
         
     }
 
-    public int checkState(int index, String word) {
-        
-        HashMap<List<String>,List<Float>> detected = checkFiducials();
-        
-        for (Map.Entry<List<String>,List<Float>> entry : detected.entrySet()) {
-            List<String> key = entry.getKey();
-            List<Float> value = entry.getValue();
-            
-            List<Float> gapCoords = fillInTheBlanks_gapCoords.get(index);
-                
-             if (((value.get(0) > gapCoords.get(0)) && (value.get(0) < (gapCoords.get(0)+gapCoords.get(2)))) && // X Coordinate
-                ((value.get(1) > gapCoords.get(1)) && (value.get(1) < (gapCoords.get(1)+gapCoords.get(3))))) { // Y Coordinate
-
-                if (key.get(0).equals("LETTER") && key.get(1).equals(""+word.toUpperCase().charAt(index))) { // Match
-
-                    if ((value.get(2) > 6) || (value.get(2) < 0.3)) {
-                        wordGuessed.put(key.get(1),key.get(2));
-                        return 1;
-                    } //Proper Alignment
-                    else return 2;
-
-                } else return 3;
-
-            }
-            
-        }
-        
-        return 0;
-        
-    }
-    
-    public List<String> checkFiducial() {
-
-        HashMap<List<String>,List<Float>> detected = checkFiducials();
-        
-        
-        return Arrays.asList("LETTER", "A", "RED"); //eg
-
-    }
-
     public HashMap<List<String>,List<Float>> checkFiducials() {
         
         HashMap<List<String>,List<Float>> detected = new HashMap();
@@ -375,7 +370,7 @@ public class Sketch extends PApplet {
         for (TuioObject to : tuioObjectList)
             detected.put(fiducialDictionary.get(to.getSymbolID()),Arrays.asList((float)to.getScreenX(width),(float)to.getScreenY(height),to.getAngle()));
 
-        return detected; //eg
+        return detected;
 
     }
     
