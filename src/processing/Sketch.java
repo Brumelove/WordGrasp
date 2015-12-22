@@ -320,7 +320,7 @@ public class Sketch extends PApplet {
 
                     String colour = key.get(2);
 
-                    if ((value.get(2) > -0.5) && (value.get(2) < 0.5)) return 1; //Proper Alignment
+                    if ((value.get(2) > 6) || (value.get(2) < 0.2)) return 1; //Proper Alignment
                     else return 2;
 
                 } else return 3;
