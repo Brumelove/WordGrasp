@@ -54,7 +54,7 @@ public class Sketch extends PApplet {
 
     @Override
     public void setup() {
-        stage = 0;
+        stage = 2;
         screensizex = width;
         screensizey = height;
         menuImage = loadImage("menu.jpg");
@@ -114,7 +114,7 @@ public class Sketch extends PApplet {
             textAlign(CENTER);
             text("WELCOME", width / 2, height / 2);
             if ((millis() - time) >= welcomeDelay) {
-                stage = 1;
+                stage = 2;
                 image(menuImage, 0, 0, screensizex, screensizey);
                 textFont(welcome, 24);
                 time = millis();//also update the stored time
@@ -134,9 +134,9 @@ public class Sketch extends PApplet {
             textAlign(CENTER);
             text("WORDSEARCH \nPress any key to START GAME", width / 2, height / 2);
 
-            if (keyPressed) {
+            //if (keyPressed) {
                 stage = 2;
-            }
+            //}
 
         } else if (stage == 2) {
 
@@ -223,7 +223,7 @@ public class Sketch extends PApplet {
         createImageContainer(300,300);
         
         for(int i = 0; i < word.length(); i++)
-            createLetterContainer(i,checkState(i,word),100,30);
+            createLetterContainer(i,word,100,30);
         
         init = false;
         
@@ -263,9 +263,26 @@ public class Sketch extends PApplet {
         
     }
     
-    public void createLetterContainer(int index, int state, int letterBackSize, int letterBackSpacing) {
+    public void createLetterContainer(int index, String word, int letterBackSize, int letterBackSpacing) {
         
         String imagePath = "";
+        
+        float size = letterBackSize;
+        /*float space = letterBackSpacing;
+        
+        float centreSpace = 0;
+        if ((word.length())%2 == 0) centreSpace = space;
+        */
+        
+        float letterWidth = (width/2)-(size*(word.length()/2))+(size*index);
+            if ((word.length())%2 != 0) letterWidth -= (size/2);
+        float letterHeight = (height/2)-(size/2)+100;
+        
+        if (init)
+            fillInTheBlanks_gapCoords.put(index, Arrays.asList(letterWidth,letterHeight,size,size));
+        
+        
+        int state = checkState(index,word);
         
         switch(state) {
             
@@ -282,21 +299,7 @@ public class Sketch extends PApplet {
         
         PImage letterBack = loadImage(imagePath);
         
-        float size = letterBackSize;
-        /*float space = letterBackSpacing;
-        
-        float centreSpace = 0;
-        if ((word.length())%2 == 0) centreSpace = space;
-        */
-        
-        float letterWidth = (width/2)-(size*(word.length()/2))+(size*index);
-            if ((word.length())%2 != 0) letterWidth -= (size/2);
-        float letterHeight = (height/2)-(size/2)+100;
-        
         image(letterBack, letterWidth, letterHeight, size, size);
-        
-        if (init)
-            fillInTheBlanks_gapCoords.put(index, Arrays.asList(letterWidth,letterHeight,size,size));
         
     }
 
@@ -310,14 +313,14 @@ public class Sketch extends PApplet {
             
             List<Float> gapCoords = fillInTheBlanks_gapCoords.get(index);
                 
-            if (((value.get(0) > gapCoords.get(0)) && (value.get(0) < (gapCoords.get(0)+gapCoords.get(2)))) && // X Coordinate
+             if (((value.get(0) > gapCoords.get(0)) && (value.get(0) < (gapCoords.get(0)+gapCoords.get(2)))) && // X Coordinate
                 ((value.get(1) > gapCoords.get(1)) && (value.get(1) < (gapCoords.get(1)+gapCoords.get(3))))) { // Y Coordinate
 
-                if (key.get(0).equals("LETTER") && key.get(1).equals(word.toUpperCase().charAt(index))) { // Match
+                if (key.get(0).equals("LETTER") && key.get(1).equals(""+word.toUpperCase().charAt(index))) { // Match
 
                     String colour = key.get(2);
 
-                    if ((value.get(2) > 20) && (value.get(2) > -20)) return 1; //Proper Alignment
+                    if ((value.get(2) > -0.5) && (value.get(2) < 0.5)) return 1; //Proper Alignment
                     else return 2;
 
                 } else return 3;
@@ -344,8 +347,8 @@ public class Sketch extends PApplet {
         HashMap<List<String>,List<Float>> detected = new HashMap();
         
         ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
-        for (int i=0;i<tuioObjectList.size();i++)
-            detected.put(fiducialDictionary.get(tuioObjectList.get(i).getSymbolID()),Arrays.asList(tuioObjectList.get(i).getX(),tuioObjectList.get(i).getY(),tuioObjectList.get(i).getAngle()));
+        for (TuioObject to : tuioObjectList)
+            detected.put(fiducialDictionary.get(to.getSymbolID()),Arrays.asList((float)to.getScreenX(width),(float)to.getScreenY(height),to.getAngle()));
 
         return detected; //eg
 
