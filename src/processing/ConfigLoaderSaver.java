@@ -21,6 +21,77 @@ import java.util.stream.Collectors;
 
 public class ConfigLoaderSaver {
 
+    public List<String> loadTextFile(String dir) {
+        
+        List<String> lines = null;
+        
+        try {
+            lines = Files.readAllLines(Paths.get(dir));
+        } catch(IOException e){ e.printStackTrace(); }
+        
+        return lines;
+        
+    }
+    
+    public void saveTextFile(String dir, List<String> lines) {
+        
+        try {
+            Files.write(Paths.get(dir), lines);
+        } catch(IOException e){ e.printStackTrace(); }
+                
+    }
+    
+    public HashMap<String, HashMap<String, String>> loadFillInTheBlanks() {
+
+        HashMap<String, HashMap<String, String>> wordImageTheme = new HashMap();
+
+        String projectDir = new File("").getAbsolutePath();
+        String gameDir = projectDir + "\\images\\fillintheblanks";
+        
+        String[] themes = (new File(gameDir)).list(new FilenameFilter() {
+            @Override
+            public boolean accept(File current, String name) {
+              return new File(current, name).isDirectory();
+            }
+        });
+        
+        for(String theme : themes) {
+            
+            HashMap<String, String> wordImage = new HashMap();
+
+            File[] files = (new File(gameDir+"\\"+theme)).listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().matches("(?i).*\\.(jpg|png|gif|bmp)$");
+                }
+            });
+
+            for (File file : files) {
+
+                //Image Name
+                String name = file.getName();
+                int pos = name.lastIndexOf(".");
+                if (pos > 0) name = name.substring(0, pos);
+
+                wordImage.put(name, file.getAbsolutePath());
+
+            }
+            
+            wordImageTheme.put(theme, wordImage);
+            
+        }
+        
+        return wordImageTheme;
+        
+    }
+    
+    public void createProfile(String profileName) {
+        
+        String projectDir = new File("").getAbsolutePath();
+        saveTextFile(projectDir+"\\profiles\\"+profileName.toLowerCase()+".txt",Arrays.asList("#points","-0","#vocablist",""));
+        
+    }
+    
     public HashMap<String, Multimap<String, String>> loadAllProfiles() {
 
         HashMap<String, Multimap<String, String>> saves = new HashMap();
@@ -82,6 +153,28 @@ public class ConfigLoaderSaver {
         
     }
     
+    public void saveProfile(String profileName, int points, List<String> words) {
+        
+        String projectDir = new File("").getAbsolutePath();
+        words.remove("");
+        List<String> prefixedWords = words.stream().map(word -> "-"+word).collect(Collectors.toList());
+        prefixedWords.add("");
+        List<String> lines = new ArrayList(Arrays.asList("#points","-"+points,"#vocablist"));
+        lines.addAll(prefixedWords);
+        
+        saveTextFile(projectDir+"\\profiles\\"+profileName.toLowerCase()+".txt",lines);
+        
+    }
+    
+    public List<String> getVocabList(Multimap<String, String> profile, List<String> words) {
+        
+        List<String> vocabList = new ArrayList(profile.get("vocablist"));
+        vocabList.retainAll(words);
+        
+        return vocabList;
+        
+    }
+    
     public List<String> getIdealWordOrder(List<String>profileNames, List<String>words) {
         
         List<Multimap<String, String>> profiles = loadProfiles(profileNames);
@@ -106,9 +199,9 @@ public class ConfigLoaderSaver {
         }
         
         Map<String, Integer> sortedSimilarities = similarities.entrySet().stream()
-                                            .sorted(Map.Entry.comparingByValue())
-                                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                                                    (e1, e2) -> e1, LinkedHashMap::new));
+                                                    .sorted(Map.Entry.comparingByValue())
+                                                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                                                            (e1, e2) -> e1, LinkedHashMap::new));
         
         List<String> idealWordOrder = new ArrayList();
         
@@ -119,90 +212,6 @@ public class ConfigLoaderSaver {
             idealWordOrder.add(key);
         
         return idealWordOrder;
-        
-    }
-    
-    public List<String> getVocabList(Multimap<String, String> profile, List<String> words) {
-        
-        List<String> vocabList = new ArrayList(profile.get("vocablist"));
-        vocabList.retainAll(words);
-        
-        return vocabList;
-        
-    }
-    
-    public HashMap<String, HashMap<String, String>> loadFillInTheBlanks() {
-
-        HashMap<String, HashMap<String, String>> wordImageTheme = new HashMap<String, HashMap<String, String>>();
-
-        String projectDir = new File("").getAbsolutePath();
-        String gameDir = projectDir + "\\images\\fillintheblanks";
-        
-        String[] themes = (new File(gameDir)).list(new FilenameFilter() {
-            @Override
-            public boolean accept(File current, String name) {
-              return new File(current, name).isDirectory();
-            }
-        });
-        
-        for(String theme : themes) {
-            
-            HashMap<String, String> wordImage = new HashMap<String, String>();
-
-            File[] files = (new File(gameDir+"\\"+theme)).listFiles(new FilenameFilter() {
-                public boolean accept(File dir, String name) {
-                    return name.toLowerCase().matches("(?i).*\\.(jpg|png|gif|bmp)$");
-                }
-            });
-
-            for (File file : files) {
-
-                //Image Name
-                String name = file.getName();
-                int pos = name.lastIndexOf(".");
-                if (pos > 0) name = name.substring(0, pos);
-
-                wordImage.put(name, file.getAbsolutePath());
-
-            }
-            
-            wordImageTheme.put(theme, wordImage);
-            
-        }
-        
-        return wordImageTheme;
-        
-    }
-    
-    public void createProfile(String profileName) {
-        
-        String projectDir = new File("").getAbsolutePath();
-        saveTextFile(projectDir+"\\profiles\\"+profileName.toLowerCase()+".txt",Arrays.asList("#points","-0","#vocablist",""));
-        
-    }
-    
-    public void saveProfile(String profileName, int points, List<String> words) {
-        
-        String projectDir = new File("").getAbsolutePath();
-        words.remove("");
-        List<String> prefixedWords = words.stream().map(word -> "-"+word).collect(Collectors.toList());
-        prefixedWords.add("");
-        List<String> lines = new ArrayList(Arrays.asList("#points","-"+points,"#vocablist"));
-        lines.addAll(prefixedWords);
-        
-        saveTextFile(projectDir+"\\profiles\\"+profileName.toLowerCase()+".txt",lines);
-        
-    }
-    
-    public List<String> loadTextFile(String dir) {
-        
-        List<String> lines = null;
-        
-        try {
-            lines = Files.readAllLines(Paths.get(dir));
-        } catch(IOException e){ e.printStackTrace(); }
-        
-        return lines;
         
     }
     
@@ -228,27 +237,6 @@ public class ConfigLoaderSaver {
         List<String> words = new ArrayList(pointsWords.get("vocablist"));
         
         saveProfile(profileName,(Integer.parseInt(points.get(0))-subtractPoints),words);
-        
-    }
-    
-    public void saveTextFile(String dir, List<String> lines) {
-        
-        try {
-            Files.write(Paths.get(dir), lines);
-        } catch(IOException e){ e.printStackTrace(); }
-                
-    }
-    
-    public static void main(String args[]) {
-        
-        ConfigLoaderSaver conf = new ConfigLoaderSaver();
-        
-        HashMap<String, Multimap<String, String>> profiles = conf.loadAllProfiles();
-        
-        profiles.forEach((k,v) -> System.out.println("key: "+k+" value:"+v));
-        
-        System.out.println();
-        
         
     }
     
