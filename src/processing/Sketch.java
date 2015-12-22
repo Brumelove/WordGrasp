@@ -63,9 +63,11 @@ public class Sketch extends PApplet {
         textFont(welcome);
         time = millis();
         
-        for(int i = 0; i < 26; i++) { //0 - 51
-            fiducialDictionary.put(i,Arrays.asList("LETTER", Character.toString((char)(i+65)), "RED"));
-            fiducialDictionary.put(i+26,Arrays.asList("LETTER", Character.toString((char)(i+65)), "BLUE"));
+        fiducialDictionary.put(0,Arrays.asList("CURSOR", "MENU"));
+        
+        for(int i = 0; i < 26; i++) { //1 - 52
+            fiducialDictionary.put(i+1,Arrays.asList("LETTER", Character.toString((char)(i+65)), "RED"));
+            fiducialDictionary.put(i+27,Arrays.asList("LETTER", Character.toString((char)(i+65)), "BLUE"));
         }
         
         //// TUIO ////
@@ -151,6 +153,18 @@ public class Sketch extends PApplet {
         //1) Fill In the Blanks
         //2) Story Mode
         //3) Vocabulary List
+        
+        
+        /*
+        String game;
+        
+        switch(game) {
+        
+            case "FillInTheBlanks" : FillInTheBlanksGame();
+                
+        }
+        
+        */
     }
 
     public void choose1Por2PMode() {
