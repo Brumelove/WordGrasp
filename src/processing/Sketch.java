@@ -1,6 +1,5 @@
 package processing;
 
-import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,17 +19,25 @@ public class Sketch extends PApplet {
     HashMap<Integer, List<String>> fiducialDictionary = new HashMap();
     
     ConfigLoaderSaver config = new ConfigLoaderSaver();
-    List<String>currentProfiles;
-    HashMap<String, String> saves;
+    List<String>currentProfiles = new ArrayList();
+    String currentChoice = "";
+    List<String>currentSelection = new ArrayList();
+    List<Float> cursorPosition = null;
+    HashMap<String, List<Float>> choiceButtons = new HashMap();
+    HashMap<String, String> saves = new HashMap();
     HashMap<String, String> fillInTheBlanks_ThemeImageWords = new HashMap();
     HashMap<Integer, List<Float>> fillInTheBlanks_gapCoords = new HashMap();
     List<String> fillInTheBlanks_WordList = new ArrayList();
     
+    String game = "";
     String theme = "";
     String word = "";
     HashMap<String,String>profilesColours = new HashMap();
     HashMap<String,String>wordGuessed = new HashMap();
     PImage img = null;
+    
+    boolean init = true;
+    boolean next = true;
     
     //// TUIO ////
     
@@ -46,9 +53,6 @@ public class Sketch extends PApplet {
     boolean callback = true;
     
     //////////////
-    
-    boolean init = true;
-    boolean next = true;
 
     @Override
     public void settings() {
@@ -59,7 +63,7 @@ public class Sketch extends PApplet {
 
     @Override
     public void setup() {
-        stage = 2;
+        stage = 1;
         screensizex = width;
         screensizey = height;
         menuImage = loadImage("menu.jpg");
@@ -89,6 +93,32 @@ public class Sketch extends PApplet {
         //////////////
         
     }
+    
+    public void reInit() {
+        
+        fiducialDictionary.clear();
+        currentProfiles.clear();
+        currentChoice = "";
+        currentSelection.clear();
+        cursorPosition = null;
+        choiceButtons.clear();
+        saves.clear();
+        fillInTheBlanks_ThemeImageWords.clear();
+        fillInTheBlanks_gapCoords.clear();
+        fillInTheBlanks_WordList.clear();
+
+        game = "";
+        theme = "";
+        word = "";
+        profilesColours.clear();
+        wordGuessed.clear();
+        img = null;
+
+        init = true;
+        next = true;
+        
+    }
+    
 
     @Override
     public void draw() {
@@ -119,82 +149,218 @@ public class Sketch extends PApplet {
             textAlign(CENTER);
             text("WELCOME", width / 2, height / 2);
             if ((millis() - time) >= welcomeDelay) {
-                stage = 2;
+                stage = 1;
                 image(menuImage, 0, 0, screensizex, screensizey);
                 textFont(welcome, 24);
                 time = millis();//also update the stored time
                 //background(1);
                 //image(menuImage,0,0,screensizex,screensizey);
             }
-        } else if (stage == 1) {
-            /*saves = (new ConfigLoader()).load();
-             while(totalx<screensizeX && totaly<screensizeY) {
+        } else if (stage == 1) { //Chpose Game
 
-
-             }*/
-
-        //rect(1,2,200,300);    
-        //rect = width/90;
-        //rect()
-            textAlign(CENTER);
-            text("WORDSEARCH \nPress any key to START GAME", width / 2, height / 2);
-
-            //if (keyPressed) {
+            if (selector(0,1))
                 stage = 2;
-            //}
 
         } else if (stage == 2) {
 
             //choose1Por2PMode();
             
-            profilesColours = new HashMap();
-            profilesColours.put("nathan","RED");
-            
-            FillInTheBlanksGame();
-
-        }
-
-    }
-
-    public void MainMenu() {
-
-        //choose game
-        //1) Fill In the Blanks
-        //2) Story Mode
-        //3) Vocabulary List
-        
-        
-        /*
-        String game;
-        
-        switch(game) {
-        
-            case "FillInTheBlanks" : FillInTheBlanksGame();
+            switch(game) { // Choose Profile(s)
                 
+                case "WORD FILL":   if (selector(1,2))
+                                        stage = 3;
+                                    break;
+                case "DICTIONARY": if (selector(1,1))
+                                        stage = 3;
+                                    break;
+                
+            }
+            
+        } else if (stage == 3) { //Choose Theme or Play
+            
+            switch(game) {
+                
+                case "WORD FILL":   if (selector(2,1))
+                                        stage = 4;
+                                    break;
+                    
+                case "DICTIONARY":  VocabList();
+                                    break;
+                
+            }
+
+        } else if (stage == 4) { //Play
+            
+            switch(game) {
+                
+                case "WORD FILL":   profilesColours = new HashMap();
+                                    profilesColours.put(currentProfiles.get(0),"RED");
+                                    if (currentProfiles.size() > 1)
+                                        profilesColours.put(currentProfiles.get(1),"BLUE");
+                                    
+                                    FillInTheBlanksGame();
+                                    break;
+                
+            }
+
+        }
+
+    }
+    
+    public void printWord(String word, int size, int letterHeight) {
+        
+        for(int i = 0; i < word.length(); i++) { 
+            
+            char c = word.charAt(i);
+            
+            if (!Character.isWhitespace(c)) {
+            
+                float letterWidth = (width/2)-(size*(word.length()/2))+(size*i);
+                if ((word.length())%2 != 0) letterWidth -= (size/2);
+
+                PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
+                image(letterBack, letterWidth, letterHeight, size, size);
+                
+            }
+            
         }
         
-        */
     }
-
-    public void choose1Por2PMode() {
-
-        int boxSide = 300;
-
-        rect((width / 2) - boxSide - 40, (height / 2) - (boxSide / 2), boxSide, boxSide, 30);
-        rect((width / 2) + 40, (height / 2) - (boxSide / 2), boxSide, boxSide, 30);
-
-    }
-
-    public void chooseProfile() {
-
-        //HashMap<String, Multimap<String, String>> profiles = config.loadProfiles();
-
-        //print profile names with letters
-        //user can scroll through profile names to choose or create a new profile
-        //points will be written under each profile
+    
+    public boolean selector(int sel, int choiceCount) {
         
-        currentProfiles.clear();
-        //for each chosen profile do -> currentProfiles.put(chosenProfile,profiles.get(chosenProfile));
+        HashMap<List<String>,List<Float>> fiducials = checkFiducials();
+        
+        List<String> choices = new ArrayList();
+        int size = 70;
+        
+        boolean done = false;
+        
+        switch(sel) {
+            
+            case 0: //Select Game
+                    choices = new ArrayList(Arrays.asList("WORD FILL", "DICTIONARY"));
+                    break;
+            case 1: //Select Profiles
+                    currentProfiles.clear();
+                    currentProfiles.addAll(currentSelection);
+                    choices = new ArrayList(config.loadAllProfiles().keySet());
+                    choices.removeAll(currentSelection);
+                    if (choices.isEmpty()) {
+                        currentChoice = "";
+                        currentSelection.clear();
+                        return true;
+                    }
+                    break;
+            case 2: //Select Theme
+                    choices = new ArrayList(config.loadFillInTheBlanks().keySet());
+                    break;
+            
+        }
+        
+        if (currentChoice.equals(""))
+            currentChoice = choices.get(0);
+        printWord(currentChoice,size,(height/2)-(size));
+        
+        
+        PImage scroll = loadImage("images/scroll.png");
+        PImage select = loadImage("images/select.png");
+        PImage play = loadImage("images/play.png");
+        float buttonSize = 200;
+        float buttonWidth = (width/2)-buttonSize;
+        float buttonHeight = (height/2)+buttonSize;
+        image(scroll, buttonWidth, buttonHeight, buttonSize, buttonSize);
+        choiceButtons.put("scroll", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+        buttonWidth = width/2;
+        image(select, buttonWidth, buttonHeight, buttonSize, buttonSize);
+        choiceButtons.put("select", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+        
+        if (checkChoice("scroll",fiducials)) {
+        
+            int scrollUpDown = checkScroll(fiducials); //1 > UP, 2 > DOWN
+
+            if (scrollUpDown == 1) {
+
+                int newChoice = choices.indexOf(currentChoice)-1;
+
+                if (newChoice == -1)
+                    newChoice = choices.size()-1;
+
+                currentChoice = choices.get(newChoice);
+
+            } else if (scrollUpDown == 2) {
+
+                int newChoice = choices.indexOf(currentChoice)+1;
+
+                if (newChoice == choices.size())
+                    newChoice = 0;
+
+                currentChoice = choices.get(newChoice);
+
+            }
+            
+        } else if (checkChoice("select",fiducials)) {
+            
+            cursorPosition = null;
+            if (currentSelection.indexOf(currentChoice) == -1)
+                currentSelection.add(currentChoice);
+            
+            if(currentSelection.size() == choiceCount)
+                done = true;
+            
+        } else {
+            
+            cursorPosition = null;
+            
+        }
+        
+        if ((currentSelection.size() >= 1) && (choiceCount > 1)) {
+            buttonWidth = (width/2)-(buttonSize/2);
+            buttonHeight = (height/2)+(buttonSize*2);
+            image(play, buttonWidth, buttonHeight, buttonSize, buttonSize);
+            choiceButtons.put("play", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+        }
+            
+        if ((!done) && (currentSelection.size() >= 1) && (choiceCount > 1) && (checkChoice("play",fiducials)))
+            done = true;
+        
+        if (done) {
+                
+            switch(sel) {
+
+                case 0: //Select Game
+                        game = currentChoice;
+                        currentChoice = "";
+                        currentSelection.clear();
+                        return true;
+                case 1: //Select Profiles
+                        currentChoice = "";
+                        currentSelection.clear();
+                        return true;
+                case 2: //Select Theme
+                        theme = currentChoice;
+                        currentChoice = "";
+                        currentSelection.clear();
+                        return true;
+
+            }
+        }
+        
+        
+        
+        
+        //Select Profiles
+        //Select Theme
+        
+        //select button
+        
+        // Select 0 --> Profile Selection
+        // Select 1 --> New Profile
+        // Select 2 --> Fill in the Blanks
+        // Select 3 --> WordList
+        
+        return false;
+        
     }
 
     public void createProfile() {
@@ -367,11 +533,79 @@ public class Sketch extends PApplet {
         HashMap<List<String>,List<Float>> detected = new HashMap();
         
         ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+        
         for (TuioObject to : tuioObjectList)
             detected.put(fiducialDictionary.get(to.getSymbolID()),Arrays.asList((float)to.getScreenX(width),(float)to.getScreenY(height),to.getAngle()));
 
         return detected;
 
+    }
+    
+    public boolean checkChoice(String button, HashMap<List<String>,List<Float>> fiducials) {
+        
+        List<Float> elementPosition = choiceButtons.get(button);
+        List<Float> cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
+        
+        if (cursorPosition != null) {
+            if (((cursorPosition.get(0) > elementPosition.get(0)) && (cursorPosition.get(0) < (elementPosition.get(0)+elementPosition.get(2)))) && // X Coordinate
+                ((cursorPosition.get(1) > elementPosition.get(1)) && (cursorPosition.get(1) < (elementPosition.get(1)+elementPosition.get(3))))) { // Y Coordinate
+
+                return true;
+
+            }
+        }
+        
+        return false;
+        
+    }
+    
+    public int checkScroll(HashMap<List<String>,List<Float>> fiducials) {
+        
+        List<Float> newCursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
+        
+        if (newCursorPosition != null) {
+            
+            if (cursorPosition == null)
+                cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
+        
+            if (newCursorPosition.get(2) > (cursorPosition.get(2)+1)) {
+                
+                if ((newCursorPosition.get(2)-cursorPosition.get(2)) > 3) {
+                    
+                    cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
+                    return 1;
+                    
+                }
+
+                cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
+                
+                //scroll down
+                return 2;
+
+            } else if (newCursorPosition.get(2) < (cursorPosition.get(2)-1)) {
+                
+                if ((cursorPosition.get(2)-newCursorPosition.get(2)) > 3) {
+                    
+                    cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
+                    return 2;
+                    
+                }
+                
+                cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
+                    
+                //scroll up
+                return 1;
+                
+            }
+            
+        } else {
+            
+            cursorPosition = null;
+            
+        }
+        
+        return 0;
+        
     }
     
     //// TUIO ////

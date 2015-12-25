@@ -1,6 +1,5 @@
 package processing;
 
-import processing.core.*;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.BufferedReader;
@@ -16,7 +15,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 public class ConfigLoaderSaver {
@@ -46,7 +44,7 @@ public class ConfigLoaderSaver {
         HashMap<String, HashMap<String, String>> wordImageTheme = new HashMap();
 
         String projectDir = new File("").getAbsolutePath();
-        String gameDir = projectDir + "\\images\\fillintheblanks";
+        String gameDir = projectDir + "\\images\\games\\fillintheblanks";
         
         String[] themes = (new File(gameDir)).list(new FilenameFilter() {
             @Override
