@@ -96,7 +96,6 @@ public class Sketch extends PApplet {
     
     public void reInit() {
         
-        fiducialDictionary.clear();
         currentProfiles.clear();
         currentChoice = "";
         currentSelection.clear();
@@ -429,37 +428,67 @@ public class Sketch extends PApplet {
         
         if (next) {
             
-            if (fillInTheBlanks_WordList.isEmpty()) System.exit(0);
-            word = fillInTheBlanks_WordList.get(0);
-            img = loadImage(fillInTheBlanks_ThemeImageWords.get(word),"jpg");
-            fillInTheBlanks_gapCoords.clear();
+            if (fillInTheBlanks_WordList.isEmpty()) {
+                //GAME WIN
+                stage = 1;
+                reInit();
+            } else {
+                word = fillInTheBlanks_WordList.get(0);
+                img = loadImage(fillInTheBlanks_ThemeImageWords.get(word),"jpg");
+                fillInTheBlanks_gapCoords.clear();
+            }
             
         }
         
-        createImageContainer(300,300);
+        if (stage != 1) {
         
-        next = true;
-        
-        for(int i = 0; i < word.length(); i++)
-            if ((createLetterContainer(i,word,100,30) != 1) && (next == true)) next = false;
-        
-        if (next) { //Check if word is correct
-        
-            for(String profile : profiles) { //If 2P Mode then check which fiducials belong to whom
+            HashMap<List<String>,List<Float>> fiducials = checkFiducials();
+            choiceButtons.clear();
+
+            PImage close = loadImage("images/remove.png");
+            int size = 70;
+            float buttonSize = 200;
+            float buttonWidth = (width)-(buttonSize*2);
+            float buttonHeight = (height/2)-(buttonSize/2)-(size/2);
+
+            image(close, buttonWidth, buttonHeight, buttonSize, buttonSize);
+            choiceButtons.put("close", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+
+            if (checkChoice("close",fiducials)) {
+
+                cursorPosition = null;
+                stage = 1;
                 
-                String colour = profilesColours.get(profile);
-                int points = 0;
-                
-                for (String value : wordGuessed.values())
-                    if (value.equals(colour)) points++;
-                
-                config.addPointsAddWord(profile,points*10,word);
+            } else {
+
+                createImageContainer(300,300);
+
+                next = true;
+
+                for(int i = 0; i < word.length(); i++)
+                    if ((createLetterContainer(i,word,100,30) != 1) && (next == true)) next = false;
+
+                if (next) { //Check if word is correct
+
+                    for(String profile : profiles) { //If 2P Mode then check which fiducials belong to whom
+
+                        String colour = profilesColours.get(profile);
+                        int points = 0;
+
+                        for (String value : wordGuessed.values())
+                            if (value.equals(colour)) points++;
+
+                        config.addPointsAddWord(profile,points*10,word);
+
+                    }
+
+                    fillInTheBlanks_WordList.remove(word);
+
+                } //next word
                 
             }
             
-            fillInTheBlanks_WordList.remove(word);
-            
-        } //next word
+        }
         
         
         
