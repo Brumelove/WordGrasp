@@ -608,7 +608,7 @@ public class Sketch extends PApplet {
             if (cursorPosition == null)
                 cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
         
-            if (newCursorPosition.get(2) > (cursorPosition.get(2)+1)) {
+            if (newCursorPosition.get(2) > (cursorPosition.get(2)+0.5)) {
                 
                 if ((newCursorPosition.get(2)-cursorPosition.get(2)) > 3) {
                     
@@ -622,7 +622,7 @@ public class Sketch extends PApplet {
                 //scroll down
                 return 2;
 
-            } else if (newCursorPosition.get(2) < (cursorPosition.get(2)-1)) {
+            } else if (newCursorPosition.get(2) < (cursorPosition.get(2)-0.5)) {
                 
                 if ((cursorPosition.get(2)-newCursorPosition.get(2)) > 3) {
                     
