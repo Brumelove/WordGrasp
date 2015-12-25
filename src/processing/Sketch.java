@@ -158,7 +158,7 @@ public class Sketch extends PApplet {
             }
         } else if (stage == 1) { //Chpose Game
 
-            if (selector(0,1))
+            if (selector(0,1,1))
                 stage = 2;
 
         } else if (stage == 2) {
@@ -167,10 +167,10 @@ public class Sketch extends PApplet {
             
             switch(game) { // Choose Profile(s)
                 
-                case "WORD FILL":   if (selector(1,2))
+                case "WORD FILL":   if (selector(1,1,2))
                                         stage = 3;
                                     break;
-                case "DICTIONARY": if (selector(1,1))
+                case "DICTIONARY": if (selector(1,1,1))
                                         stage = 3;
                                     break;
                 
@@ -180,7 +180,7 @@ public class Sketch extends PApplet {
             
             switch(game) {
                 
-                case "WORD FILL":   if (selector(2,1))
+                case "WORD FILL":   if (selector(2,1,1))
                                         stage = 4;
                                     break;
                     
@@ -207,7 +207,29 @@ public class Sketch extends PApplet {
 
     }
     
-    public void printWord(String word, int size, int letterHeight) {
+    public void printWord(String word, int size, int letterHeight, int opacity, boolean checkChosen) {
+        
+        if (checkChosen) {
+            
+            if (currentSelection.contains(word)) {
+                
+                int longest = 0;
+                
+                for(String sel : currentSelection)
+                    if (longest < sel.length())
+                        longest = sel.length();
+                
+                fill(255,0,0,(127*opacity)/100);
+                
+                int letterWidth = (width/2)-(size*(longest/2));
+                    if ((word.length())%2 != 0) letterWidth -= (size/2);
+                
+                rect(letterWidth-15,letterHeight-15,(size*longest)+30,size+30);
+                fill(255,255,255);
+                
+            }
+            
+        }
         
         for(int i = 0; i < word.length(); i++) { 
             
@@ -216,20 +238,22 @@ public class Sketch extends PApplet {
             if (!Character.isWhitespace(c)) {
             
                 float letterWidth = (width/2)-(size*(word.length()/2))+(size*i);
-                if ((word.length())%2 != 0) letterWidth -= (size/2);
+                    if ((word.length())%2 != 0) letterWidth -= (size/2);
 
                 PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
+                tint(255, (int)((opacity*255)/100));
                 image(letterBack, letterWidth, letterHeight, size, size);
-                
+                tint(255, 255);
             }
             
         }
         
     }
     
-    public boolean selector(int sel, int choiceCount) {
+    public boolean selector(int sel, int minChoice, int maxChoice) {
         
         HashMap<List<String>,List<Float>> fiducials = checkFiducials();
+        choiceButtons.clear();
         
         List<String> choices = new ArrayList();
         int size = 70;
@@ -260,20 +284,34 @@ public class Sketch extends PApplet {
         
         if (currentChoice.equals(""))
             currentChoice = choices.get(0);
-        printWord(currentChoice,size,(height/2)-(size));
-        
+        int pos = choices.indexOf(currentChoice);
+        if (pos > 0)
+            printWord(choices.get(pos-1),size,(height/2)-(size/2)-(int)((size)*1.5),50,true);
+        printWord(currentChoice,size,(height/2)-(size/2),100,true);
+        if (pos < choices.size()-1)
+            printWord(choices.get(pos+1),size,(height/2)-(size/2)+(int)((size)*1.5),50,true);
         
         PImage scroll = loadImage("images/scroll.png");
         PImage select = loadImage("images/select.png");
+        PImage remove = loadImage("images/remove.png");
         PImage play = loadImage("images/play.png");
         float buttonSize = 200;
-        float buttonWidth = (width/2)-buttonSize;
-        float buttonHeight = (height/2)+buttonSize;
+        float buttonWidth = (width)-(buttonSize*2);
+        float buttonHeight = (height/2)-(buttonSize/2)-(size/2);
+        
+        if (!currentSelection.contains(currentChoice)) {
+            if(currentSelection.size() < maxChoice) {
+                image(select, buttonWidth, buttonHeight, buttonSize, buttonSize);
+                choiceButtons.put("select", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+            }
+        } else {
+            image(remove, buttonWidth, buttonHeight, buttonSize, buttonSize);
+            choiceButtons.put("remove", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+        }
+        
+        buttonWidth = (width)-(buttonSize);
         image(scroll, buttonWidth, buttonHeight, buttonSize, buttonSize);
         choiceButtons.put("scroll", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
-        buttonWidth = width/2;
-        image(select, buttonWidth, buttonHeight, buttonSize, buttonSize);
-        choiceButtons.put("select", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
         
         if (checkChoice("scroll",fiducials)) {
         
@@ -299,14 +337,16 @@ public class Sketch extends PApplet {
 
             }
             
-        } else if (checkChoice("select",fiducials)) {
+        } else if (!currentSelection.contains(currentChoice) && checkChoice("select",fiducials)) {
             
             cursorPosition = null;
             if (currentSelection.indexOf(currentChoice) == -1)
                 currentSelection.add(currentChoice);
             
-            if(currentSelection.size() == choiceCount)
-                done = true;
+        } else if (currentSelection.contains(currentChoice) && checkChoice("remove",fiducials)) {
+            
+            cursorPosition = null;
+            currentSelection.remove(currentChoice);
             
         } else {
             
@@ -314,14 +354,14 @@ public class Sketch extends PApplet {
             
         }
         
-        if ((currentSelection.size() >= 1) && (choiceCount > 1)) {
+        if (currentSelection.size() >= minChoice) {
             buttonWidth = (width/2)-(buttonSize/2);
-            buttonHeight = (height/2)+(buttonSize*2);
+            buttonHeight = (height/2)-(size/2)+(int)((size)*1.5)+150;
             image(play, buttonWidth, buttonHeight, buttonSize, buttonSize);
             choiceButtons.put("play", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
         }
             
-        if ((!done) && (currentSelection.size() >= 1) && (choiceCount > 1) && (checkChoice("play",fiducials)))
+        if ((!done) && (currentSelection.size() >= minChoice) && (checkChoice("play",fiducials)))
             done = true;
         
         if (done) {
