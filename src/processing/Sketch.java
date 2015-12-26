@@ -463,7 +463,7 @@ public class Sketch extends PApplet {
                 switch(sel) {
 
                     case 0: //Select Game
-                            game = currentChoice;
+                            game = currentSelection.get(0);
                             currentChoice = "";
                             currentSelection.clear();
                             return true;
@@ -472,7 +472,7 @@ public class Sketch extends PApplet {
                             currentSelection.clear();
                             return true;
                     case 2: //Select Theme
-                            theme = currentChoice;
+                            theme = currentSelection.get(0);
                             currentChoice = "";
                             currentSelection.clear();
                             return true;
