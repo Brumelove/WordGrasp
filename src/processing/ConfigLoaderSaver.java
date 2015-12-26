@@ -213,6 +213,14 @@ public class ConfigLoaderSaver {
         
     }
     
+    public String getPoints(String profileName) {
+        
+        Multimap<String, String> pointsWords = loadProfile(profileName);
+        List<String> points = new ArrayList(pointsWords.get("points"));
+        return points.get(0);
+        
+    }
+    
     public void addPointsAddWord(String profileName, int addPoints, String addWord) {
         
         Multimap<String, String> pointsWords = loadProfile(profileName);
