@@ -733,7 +733,7 @@ public class Sketch extends PApplet {
         List<Float> elementPosition = choiceButtons.get(button);
         List<Float> cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
         
-        if (cursorPosition != null) {
+        if ((cursorPosition != null) && (elementPosition != null)) {
             if (((cursorPosition.get(0) > elementPosition.get(0)) && (cursorPosition.get(0) < (elementPosition.get(0)+elementPosition.get(2)))) && // X Coordinate
                 ((cursorPosition.get(1) > elementPosition.get(1)) && (cursorPosition.get(1) < (elementPosition.get(1)+elementPosition.get(3))))) { // Y Coordinate
 
