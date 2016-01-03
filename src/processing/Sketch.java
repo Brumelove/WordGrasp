@@ -327,7 +327,7 @@ public class Sketch extends PApplet {
         
         List<String> choices = new ArrayList();
         int size = 70;
-        float buttonSize = 200;
+        float buttonSize = 150;
         
         boolean done = false;
         
@@ -382,10 +382,10 @@ public class Sketch extends PApplet {
                 currentChoice = choices.get(0);
             int pos = choices.indexOf(currentChoice);
             if (pos > 0)
-                printWord(choices.get(pos-1),size,(height/2)-(size/2)-(int)((size)*1.5),50,true);
+                printWord(choices.get(pos-1),size+10,(height/2)-(size/2)-(int)((size)*1.5),50,true);
             printWord(currentChoice,size,(height/2)-(size/2),100,true);
             if (pos < choices.size()-1)
-                printWord(choices.get(pos+1),size,(height/2)-(size/2)+(int)((size)*1.5),50,true);
+                printWord(choices.get(pos+1),size+10,(height/2)-(size/2)+(int)((size)*1.5),50,true);
 
             PImage scroll = loadImage("images/scroll.png");
             PImage select = loadImage("images/select.png");
