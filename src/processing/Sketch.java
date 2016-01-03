@@ -133,26 +133,6 @@ public class Sketch extends PApplet {
 
         image(menuImage, 0, 0, screensizex, screensizey);
         
-        //// TUIO ////
-        textFont(font,18*scale_factor);
-        float obj_size = object_size*scale_factor;
-        float cur_size = cursor_size*scale_factor;
-
-        ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
-        for (int i=0;i<tuioObjectList.size();i++) {
-            TuioObject tobj = tuioObjectList.get(i);
-            stroke(0);
-            fill(0,0,0);
-            pushMatrix();
-            translate(tobj.getScreenX(width),tobj.getScreenY(height));
-            rotate(tobj.getAngle());
-            rect(-obj_size/2,-obj_size/2,obj_size,obj_size);
-            popMatrix();
-            fill(255);
-            text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
-        }
-        //////////////
-        
         if (stage == 0) {
             textAlign(CENTER);
             text("WELCOME", width / 2, height / 2);
@@ -212,6 +192,26 @@ public class Sketch extends PApplet {
             }
 
         }
+        
+        //// TUIO ////
+        textFont(font,18*scale_factor);
+        float obj_size = object_size*scale_factor;
+        float cur_size = cursor_size*scale_factor;
+
+        ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+        for (int i=0;i<tuioObjectList.size();i++) {
+            TuioObject tobj = tuioObjectList.get(i);
+            stroke(0);
+            fill(0,0,0);
+            pushMatrix();
+            translate(tobj.getScreenX(width),tobj.getScreenY(height));
+            rotate(tobj.getAngle());
+            rect(-obj_size/2,-obj_size/2,obj_size,obj_size);
+            popMatrix();
+            fill(255);
+            text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
+        }
+        //////////////
 
     }
     
