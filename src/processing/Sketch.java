@@ -5,12 +5,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import processing.core.*;
+import processing.video.*;
 import TUIO.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import gifAnimation.*;
+import java.io.File;
 
 public class Sketch extends PApplet {
 
@@ -18,7 +20,6 @@ public class Sketch extends PApplet {
     PFont welcome;
     int screensizex, screensizey, stage;
     int time;
-    int welcomeDelay = 3000;
     
     HashMap<Integer, List<String>> fiducialDictionary = new HashMap();
     
@@ -43,6 +44,7 @@ public class Sketch extends PApplet {
     
     Gif adviceGif = null;
     Gif wordGif = null;
+    Movie successMovie = null;
     
     boolean init = true;
     boolean next = true;
@@ -80,6 +82,7 @@ public class Sketch extends PApplet {
         textFont(welcome);
         time = millis();
         
+        
         fiducialDictionary.put(0,Arrays.asList("CURSOR", "MENU"));
         
         for(int i = 0; i < 26; i++) { //1 - 52
@@ -88,11 +91,6 @@ public class Sketch extends PApplet {
         }
         
         //// TUIO ////
-        
-        if (!callback) {
-          frameRate(60);
-          loop();
-        } else noLoop();
         
         font = createFont("Arial", 18);
         scale_factor = height/table_size;
@@ -121,6 +119,10 @@ public class Sketch extends PApplet {
         profilesColours.clear();
         wordGuessed.clear();
         img = null;
+        
+        adviceGif = null;
+        wordGif = null;
+        successMovie = null;
 
         init = true;
         next = true;
@@ -133,18 +135,7 @@ public class Sketch extends PApplet {
 
         image(menuImage, 0, 0, screensizex, screensizey);
         
-        if (stage == 0) {
-            textAlign(CENTER);
-            text("WELCOME", width / 2, height / 2);
-            if ((millis() - time) >= welcomeDelay) {
-                stage = 1;
-                image(menuImage, 0, 0, screensizex, screensizey);
-                textFont(welcome, 24);
-                time = millis();//also update the stored time
-                //background(1);
-                //image(menuImage,0,0,screensizex,screensizey);
-            }
-        } else if (stage == 1) { //Chpose Game
+        if (stage == 1) { //Choose Game
 
             if (selector(0,1,1,false))
                 stage = 2;
@@ -263,7 +254,7 @@ public class Sketch extends PApplet {
         int size = 40;
         int count = 0;
         
-        float splitWidth = width/profilesColours.size();
+        float splitWidth = width/(profilesColours.size()+1);
         
         for (Map.Entry<String, String> entry : profilesColours.entrySet()) {
             
@@ -285,7 +276,7 @@ public class Sketch extends PApplet {
                 if (!Character.isWhitespace(c)) {
                     
                     float letterHeight = height-(size*2)-20;
-                    float letterWidth = (((splitWidth*(count+1))-(splitWidth*count))/2)-(size*(profileName.length()/2))+(size*i);
+                    float letterWidth = (splitWidth*(count+1))-(size*(profileName.length()/2))+(size*i);
                         if ((profileName.length())%2 != 0) letterWidth -= (size/2);
 
                     PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
@@ -303,7 +294,7 @@ public class Sketch extends PApplet {
                 if (!Character.isWhitespace(c)) {
                 
                     float letterHeight = height-size-10;
-                    float letterWidth = (((splitWidth*(count+1))-(splitWidth*count))/2)-(size*(points.length()/2))+(size*i);
+                    float letterWidth = (splitWidth*(count+1))-(size*(points.length()/2))+(size*i);
                         if ((points.length())%2 != 0) letterWidth -= (size/2);
 
                     PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
@@ -327,7 +318,7 @@ public class Sketch extends PApplet {
         
         List<String> choices = new ArrayList();
         int size = 70;
-        float buttonSize = 150;
+        float buttonSize = 100;
         
         boolean done = false;
         
@@ -348,6 +339,7 @@ public class Sketch extends PApplet {
             } else if (!createProfile.isEmpty()) {
                 
                 //Save text file with new info
+                speak(createProfile);
                 config.createProfile(createProfile);
                 createProfile = "";
                 
@@ -382,17 +374,17 @@ public class Sketch extends PApplet {
                 currentChoice = choices.get(0);
             int pos = choices.indexOf(currentChoice);
             if (pos > 0)
-                printWord(choices.get(pos-1),size+10,(height/2)-(size/2)-(int)((size)*1.5),50,true);
+                printWord(choices.get(pos-1),size,(height/2)-(size/2)-(int)((size)*1.5),50,true);
             printWord(currentChoice,size,(height/2)-(size/2),100,true);
             if (pos < choices.size()-1)
-                printWord(choices.get(pos+1),size+10,(height/2)-(size/2)+(int)((size)*1.5),50,true);
+                printWord(choices.get(pos+1),size,(height/2)-(size/2)+(int)((size)*1.5),50,true);
 
             PImage scroll = loadImage("images/scroll.png");
             PImage select = loadImage("images/select.png");
             PImage remove = loadImage("images/remove.png");
             PImage play = loadImage("images/play.png");
             float buttonWidth = (width)-(buttonSize*2);
-            float buttonHeight = (height/2)-(buttonSize/2)-(size/2);
+            float buttonHeight = (height/2)-(buttonSize/2);
 
             if (!currentSelection.contains(currentChoice)) {
                 if(currentSelection.size() < maxChoice) {
@@ -506,11 +498,8 @@ public class Sketch extends PApplet {
             List<String> fiducial = entry.getKey();
             List<Float> position = entry.getValue();
             
-            if (fiducial.get(0).equals("LETTER")) {
-                
+            if (fiducial.get(0).equals("LETTER"))
                 createProfile = createProfile.concat(fiducial.get(1));
-                
-            }
             
         }
         
@@ -537,10 +526,10 @@ public class Sketch extends PApplet {
             
             if (wordGif == null) {
             
-                if (fillInTheBlanks_WordList.isEmpty()) {
+                if (fillInTheBlanks_WordList.isEmpty() && successMovie == null) {
                     //GAME WIN
-                    stage = 1;
-                    reInit();
+                    successMovie = new Movie(this, theme+".mov");
+                    successMovie.play();
                 } else {
                     word = fillInTheBlanks_WordList.get(0);
                     img = loadImage(fillInTheBlanks_ThemeImageWords.get(word),"jpg");
@@ -553,11 +542,23 @@ public class Sketch extends PApplet {
                 if (!wordGif.isPlaying())
                     wordGif = null;
                 
-            }           
+            }         
             
         }
         
-        if (stage != 1 && wordGif == null) {
+        if (successMovie != null) {
+            
+            if (successMovie.available()) {
+                image(successMovie, (width/2)-(successMovie.width/2), (height/2)-(successMovie.height/2));
+            } else {
+                stage = 1;
+                reInit();
+            }
+            
+            
+        }
+        
+        if (stage != 1 && wordGif == null && !fillInTheBlanks_WordList.isEmpty()) {
         
             HashMap<List<String>,List<Float>> fiducials = checkFiducials();
             choiceButtons.clear();
@@ -598,6 +599,8 @@ public class Sketch extends PApplet {
                         config.addPointsAddWord(profile,points*10,word);
 
                     }
+                    
+                    speak(word);
                     
                     wordGif = new Gif(this, config.getFillInTheBlanksResPath()+""+word+".gif");
                     wordGif.play();
@@ -797,6 +800,20 @@ public class Sketch extends PApplet {
         return 0;
         
     }
+    
+    public void speak(String text) {
+        File ttsDir = new File(""+new File("").getAbsolutePath()+"\\tts");
+        Runtime rt = Runtime.getRuntime();
+        try {
+            Process pr = rt.exec("cmd /c echo "+text+" > \"text.txt\"",new String[]{},ttsDir);
+            pr = rt.exec("cscript speak.vbs",new String[]{},ttsDir);
+        } catch (Exception e) {e.printStackTrace();}
+    }
+    
+    public void movieEvent(Movie m) {
+        m.read();
+    }
+
     
     //// TUIO ////
     
