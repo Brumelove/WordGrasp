@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.io.File;
-import java.util.Set;
 import gifAnimation.*;
 import processing.event.MouseEvent;
 
@@ -52,7 +51,8 @@ public class Sketch extends PApplet {
     HashMap<String, String> fillInTheBlanks_ThemeImageWords = new HashMap();
     HashMap<Integer, List<Float>> fillInTheBlanks_gapCoords = new HashMap();
     List<String> fillInTheBlanks_WordList = new ArrayList();
-    HashMap<List<String>,List<Float>> oldFiducials = new HashMap();
+    List<List<String>> oldFiducials = new ArrayList();
+    HashMap<List<String>,Integer> fiducialsDelay = new HashMap();
     
     String game = "";
     String theme = "";
@@ -150,7 +150,7 @@ public class Sketch extends PApplet {
         fillInTheBlanks_ThemeImageWords.clear();
         fillInTheBlanks_gapCoords.clear();
         fillInTheBlanks_WordList.clear();
-        oldFiducials.clear();
+        fiducialsDelay.clear();
 
         game = "";
         theme = "";
@@ -336,7 +336,7 @@ public class Sketch extends PApplet {
         
         float letterHeight = height-(size*2)-20;
         float letterWidth = (width/2)-(size*(longestWord.length()/2));
-                if ((longestWord.length())%2 != 0) letterWidth -= (size/2);
+            if ((longestWord.length())%2 != 0) letterWidth -= (size/2);
 
        
         for (Map.Entry<String, String> entry : profilesColours.entrySet()) {
@@ -350,6 +350,8 @@ public class Sketch extends PApplet {
             else if (colour.equals("BLUE"))
                 fill(0,0,255,180);
             
+            letterWidth = (splitWidth*(count+1))-(size*(longestWord.length()/2));
+                if ((longestWord.length())%2 != 0) letterWidth -= (size/2);
             rect(letterWidth-15,letterHeight-15,(size*longestWord.length())+30,height-(letterHeight-15));
             fill(255,255,255,255);
                     
@@ -375,12 +377,11 @@ public class Sketch extends PApplet {
 
                 if (!Character.isWhitespace(c)) {
                 
-                    letterHeight = height-size-10;
                     letterWidth = (splitWidth*(count+1))-(size*(points.length()/2))+(size*i);
                         if ((points.length())%2 != 0) letterWidth -= (size/2);
 
                     tint(255, 255);
-                    image(lettersAndNumbers.get((""+c).toUpperCase()), letterWidth, letterHeight, size, size);
+                    image(lettersAndNumbers.get((""+c).toUpperCase()), letterWidth, height-size-10, size, size);
                     
                 }
 
@@ -604,25 +605,19 @@ public class Sketch extends PApplet {
 
     }
     
-    public void speakNewLetters(HashMap<List<String>,List<Float>> oldFiducials, HashMap<List<String>,List<Float>> fiducials) {
+    public void speakNewLetters(HashMap<List<String>,List<Float>> fiducials, int delay) {
         
-        if (!oldFiducials.isEmpty() && (oldFiducials.size() < fiducials.size())) {
-                
-            Set<List<String>> oldKeys = oldFiducials.keySet();
-            Set<List<String>> newKeys = fiducials.keySet();
+        for (List<String>key : fiducials.keySet()) {
 
-            List<String> lettersDiff = new ArrayList();
+            if (!oldFiducials.contains(key) && ((fiducialsDelay.get(key) == null) || ((millis() - fiducialsDelay.get(key)) > delay))) {
+                speak(key.get(1));
+                fiducialsDelay.put(key, millis());
+            }
 
-            for(List<String> key : newKeys)
-                lettersDiff.add((key.get(1)).trim());
-
-            for(List<String> key : oldKeys)
-                lettersDiff.remove((key.get(1)).trim());
-
-            for(String newLetter : lettersDiff)
-                speak(newLetter);
-                    
         }
+        
+        oldFiducials.clear();
+        oldFiducials = new ArrayList(fiducials.keySet());
         
     }
 
@@ -679,7 +674,7 @@ public class Sketch extends PApplet {
             
             HashMap<List<String>,List<Float>> fiducials = checkFiducials();
             
-            speakNewLetters(oldFiducials,fiducials);
+            speakNewLetters(fiducials, 2000);
             
             choiceButtons.clear();
 
@@ -733,13 +728,7 @@ public class Sketch extends PApplet {
                 
             }
             
-            oldFiducials.clear();
-            oldFiducials = new HashMap(fiducials);
-            
         }
-        
-        
-        
         
         //Increment points accordingly and save to text file
         //Next word (10 words per session) + Extra bonus points for completing session

@@ -11,6 +11,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -192,6 +194,8 @@ public class ConfigLoaderSaver {
     }
     
     public List<String> getIdealWordOrder(List<String>profileNames, List<String>words) {
+        
+        Collections.sort(words, (String s1, String s2) -> s1.length() - s2.length());
         
         List<Multimap<String, String>> profiles = loadProfiles(profileNames);
         
