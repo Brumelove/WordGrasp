@@ -89,6 +89,12 @@ public class ConfigLoaderSaver {
         
     }
     
+    public String getFillInTheBlanksGifPath(String theme, String word) {
+        
+        return (new File("").getAbsolutePath()+"\\images\\games\\fillintheblanks\\"+theme+"\\"+word+".gif");
+        
+    }
+    
     public void createProfile(String profileName) {
         
         String projectDir = new File("").getAbsolutePath();

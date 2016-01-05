@@ -11,8 +11,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import gifAnimation.*;
 import java.io.File;
+import gifAnimation.*;
+import java.util.Set;
 
 public class Sketch extends PApplet {
 
@@ -29,10 +30,12 @@ public class Sketch extends PApplet {
     List<String>currentSelection = new ArrayList();
     List<Float> cursorPosition = null;
     HashMap<String, List<Float>> choiceButtons = new HashMap();
+    boolean selected = false;
     HashMap<String, String> saves = new HashMap();
     HashMap<String, String> fillInTheBlanks_ThemeImageWords = new HashMap();
     HashMap<Integer, List<Float>> fillInTheBlanks_gapCoords = new HashMap();
     List<String> fillInTheBlanks_WordList = new ArrayList();
+    HashMap<List<String>,List<Float>> oldFiducials = new HashMap();
     
     String game = "";
     String theme = "";
@@ -58,6 +61,7 @@ public class Sketch extends PApplet {
     float table_size = 760;
     float scale_factor = 1;
     PFont font;
+    PFont selectorFont;
 
     boolean verbose = false;
     boolean callback = true;
@@ -77,14 +81,9 @@ public class Sketch extends PApplet {
         screensizex = width;
         screensizey = height;
         menuImage = loadImage("menu.jpg");
-        image(menuImage, 0, 0, screensizex, screensizey);
-        welcome = loadFont("ArialMT-48.vlw");
-        textFont(welcome);
-        time = millis();
-        
+        image(menuImage, 0, 0, screensizex, screensizey);        
         
         fiducialDictionary.put(0,Arrays.asList("CURSOR", "MENU"));
-        
         for(int i = 0; i < 26; i++) { //1 - 52
             fiducialDictionary.put(i+1,Arrays.asList("LETTER", Character.toString((char)(i+65)), "RED"));
             fiducialDictionary.put(i+27,Arrays.asList("LETTER", Character.toString((char)(i+65)), "BLUE"));
@@ -93,6 +92,7 @@ public class Sketch extends PApplet {
         //// TUIO ////
         
         font = createFont("Arial", 18);
+        selectorFont = loadFont("KristenITC-Regular-48.vlw");
         scale_factor = height/table_size;
         tuioClient  = new TuioProcessing(this);
         
@@ -107,10 +107,12 @@ public class Sketch extends PApplet {
         currentSelection.clear();
         cursorPosition = null;
         choiceButtons.clear();
+        selected = false;
         saves.clear();
         fillInTheBlanks_ThemeImageWords.clear();
         fillInTheBlanks_gapCoords.clear();
         fillInTheBlanks_WordList.clear();
+        oldFiducials.clear();
 
         game = "";
         theme = "";
@@ -206,6 +208,41 @@ public class Sketch extends PApplet {
 
     }
     
+    public String toTitleCase(String sentence) {
+        
+        StringBuilder titleCase = new StringBuilder();
+        boolean nextTitleCase = true;
+
+        for (char c : sentence.toCharArray()) {
+            if (Character.isSpaceChar(c)) {
+                nextTitleCase = true;
+            } else if (nextTitleCase) {
+                c = Character.toTitleCase(c);
+                nextTitleCase = false;
+            }
+
+            titleCase.append(c);
+        }
+
+        return titleCase.toString();
+        
+    }
+    
+    public void addTitle(String choice) {
+        
+        PImage cloud = loadImage("/images/cloud.png");
+        int cloudWidth = 600;
+        int cloudHeight = 230;
+        
+        image(cloud, (width/2)-(cloudWidth/2), height/5-(cloudHeight/2)-10, cloudWidth, cloudHeight);
+        textFont(selectorFont,60);
+        fill(0, 0, 0);
+        textAlign(CENTER);
+        text(choice, width/2, height/5);
+        textFont(font);
+        
+    }
+    
     public void printWord(String word, int size, int letterHeight, int opacity, boolean checkChosen) {
         
         if (checkChosen) {
@@ -256,18 +293,29 @@ public class Sketch extends PApplet {
         
         float splitWidth = width/(profilesColours.size()+1);
         
+        String longestWord = "";
+        for (String profileName : profilesColours.keySet())
+            if (longestWord.length() < profileName.length())
+                longestWord = ""+profileName;
+        
+        float letterHeight = height-(size*2)-20;
+        float letterWidth = (width/2)-(size*(longestWord.length()/2));
+                if ((longestWord.length())%2 != 0) letterWidth -= (size/2);
+
+       
         for (Map.Entry<String, String> entry : profilesColours.entrySet()) {
             
             String profileName = entry.getKey();
             String colour = entry.getValue();
             String points = config.getPoints(profileName);
             
-            /*
             if (colour.equals("RED"))
-                fill(255,0,0);
+                fill(255,0,0,180);
             else if (colour.equals("BLUE"))
-                fill(0,0,255);
-            */
+                fill(0,0,255,180);
+            
+            rect(letterWidth-15,letterHeight-15,(size*longestWord.length())+30,height-(letterHeight-15));
+            fill(255,255,255,255);
                     
             for(int i = 0; i < profileName.length(); i++) { 
             
@@ -275,8 +323,7 @@ public class Sketch extends PApplet {
 
                 if (!Character.isWhitespace(c)) {
                     
-                    float letterHeight = height-(size*2)-20;
-                    float letterWidth = (splitWidth*(count+1))-(size*(profileName.length()/2))+(size*i);
+                    letterWidth = (splitWidth*(count+1))-(size*(profileName.length()/2))+(size*i);
                         if ((profileName.length())%2 != 0) letterWidth -= (size/2);
 
                     PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
@@ -293,8 +340,8 @@ public class Sketch extends PApplet {
 
                 if (!Character.isWhitespace(c)) {
                 
-                    float letterHeight = height-size-10;
-                    float letterWidth = (splitWidth*(count+1))-(size*(points.length()/2))+(size*i);
+                    letterHeight = height-size-10;
+                    letterWidth = (splitWidth*(count+1))-(size*(points.length()/2))+(size*i);
                         if ((points.length())%2 != 0) letterWidth -= (size/2);
 
                     PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
@@ -352,9 +399,11 @@ public class Sketch extends PApplet {
             switch(sel) {
 
                 case 0: //Select Game
+                        addTitle("Select Game");
                         choices = new ArrayList(Arrays.asList("WORD FILL", "DICTIONARY"));
                         break;
                 case 1: //Select Profiles
+                        addTitle("Select Profiles");
                         currentProfiles.clear();
                         currentProfiles.addAll(currentSelection);
                         choices = new ArrayList(config.loadAllProfiles().keySet());
@@ -365,6 +414,7 @@ public class Sketch extends PApplet {
                         }
                         break;
                 case 2: //Select Theme
+                        addTitle("Select Theme");
                         choices = new ArrayList(config.loadFillInTheBlanks().keySet());
                         break;
 
@@ -402,6 +452,7 @@ public class Sketch extends PApplet {
 
             if (checkChoice("scroll",fiducials)) {
 
+                selected = false;
                 int scrollUpDown = checkScroll(fiducials); //1 > UP, 2 > DOWN
 
                 if (scrollUpDown == 1) {
@@ -424,19 +475,22 @@ public class Sketch extends PApplet {
 
                 }
 
-            } else if (!currentSelection.contains(currentChoice) && checkChoice("select",fiducials)) {
+            } else if (!currentSelection.contains(currentChoice) && !selected && checkChoice("select",fiducials)) {
 
+                selected = true;
                 cursorPosition = null;
                 if (currentSelection.indexOf(currentChoice) == -1)
                     currentSelection.add(currentChoice);
 
-            } else if (currentSelection.contains(currentChoice) && checkChoice("remove",fiducials)) {
+            } else if (currentSelection.contains(currentChoice) && !selected && checkChoice("remove",fiducials)) {
 
+                selected = true;
                 cursorPosition = null;
                 currentSelection.remove(currentChoice);
 
             } else {
 
+                selected = false;
                 cursorPosition = null;
 
             }
@@ -508,6 +562,28 @@ public class Sketch extends PApplet {
         printWord(createProfile,size,(height/2)-(size/2),100,true);
 
     }
+    
+    public void speakNewLetters(HashMap<List<String>,List<Float>> oldFiducials, HashMap<List<String>,List<Float>> fiducials) {
+        
+        if (!oldFiducials.isEmpty() && (oldFiducials.size() < fiducials.size())) {
+                
+            Set<List<String>> oldKeys = oldFiducials.keySet();
+            Set<List<String>> newKeys = fiducials.keySet();
+
+            List<String> lettersDiff = new ArrayList();
+
+            for(List<String> key : newKeys)
+                lettersDiff.add((key.get(1)).trim());
+
+            for(List<String> key : oldKeys)
+                lettersDiff.remove((key.get(1)).trim());
+
+            for(String newLetter : lettersDiff)
+                speak(newLetter);
+                    
+        }
+        
+    }
 
     public void FillInTheBlanksGame() {
         
@@ -559,10 +635,16 @@ public class Sketch extends PApplet {
         }
         
         if (stage != 1 && wordGif == null && !fillInTheBlanks_WordList.isEmpty()) {
-        
+            
             HashMap<List<String>,List<Float>> fiducials = checkFiducials();
+            
+            speakNewLetters(oldFiducials,fiducials);
+            
             choiceButtons.clear();
 
+            PImage tip = loadImage("images/fillInTheBlanksTip.png");
+            image(tip, width-tip.width-(width/7), height-tip.height-(height/7));
+            
             PImage close = loadImage("images/remove.png");
             int size = 70;
             float buttonSize = 200;
@@ -602,7 +684,7 @@ public class Sketch extends PApplet {
                     
                     speak(word);
                     
-                    wordGif = new Gif(this, config.getFillInTheBlanksResPath()+""+word+".gif");
+                    wordGif = new Gif(this, config.getFillInTheBlanksGifPath(theme,word));
                     wordGif.play();
                     wordGif.ignoreRepeat();
 
@@ -611,6 +693,9 @@ public class Sketch extends PApplet {
                 } //next word
                 
             }
+            
+            oldFiducials.clear();
+            oldFiducials = new HashMap(fiducials);
             
         }
         
