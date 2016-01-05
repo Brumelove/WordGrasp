@@ -60,7 +60,7 @@ public class ConfigLoaderSaver {
             File[] files = (new File(gameDir+"\\"+theme)).listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.toLowerCase().matches("(?i).*\\.(jpg|png|gif|bmp)$");
+                    return name.toLowerCase().matches("(?i).*\\.(jpg|png|bmp)$");
                 }
             });
 
@@ -92,6 +92,12 @@ public class ConfigLoaderSaver {
     public String getFillInTheBlanksGifPath(String theme, String word) {
         
         return (new File("").getAbsolutePath()+"\\images\\games\\fillintheblanks\\"+theme+"\\"+word+".gif");
+        
+    }
+    
+    public String getFillInTheBlanksVidPath(String theme) {
+        
+        return (new File("").getAbsolutePath()+"\\images\\games\\fillintheblanks\\"+theme+"\\"+theme+".mp4");
         
     }
     

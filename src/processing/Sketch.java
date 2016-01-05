@@ -14,10 +14,24 @@ import java.util.stream.Collectors;
 import java.io.File;
 import java.util.Set;
 import gifAnimation.*;
+import processing.event.MouseEvent;
 
 public class Sketch extends PApplet {
-
+    
     PImage menuImage;
+    PImage cloud;
+    PImage add;
+    PImage scroll;
+    PImage select;
+    PImage remove;
+    PImage play;
+    PImage tip;
+    PImage close;
+    PImage letterBackDefault;
+    PImage letterBackIncorrect;
+    PImage letterBackTurn;
+    PImage letterBackCorrect;
+    HashMap<String,PImage> lettersAndNumbers = new HashMap();
     PFont welcome;
     int screensizex, screensizey, stage;
     int time;
@@ -29,6 +43,9 @@ public class Sketch extends PApplet {
     String currentChoice = "";
     List<String>currentSelection = new ArrayList();
     List<Float> cursorPosition = null;
+    List<Float> mousePosition = null;
+    int mouseWheel = 0;
+    
     HashMap<String, List<Float>> choiceButtons = new HashMap();
     boolean selected = false;
     HashMap<String, String> saves = new HashMap();
@@ -66,6 +83,7 @@ public class Sketch extends PApplet {
     boolean verbose = false;
     boolean callback = true;
     
+    
     //////////////
 
     @Override
@@ -81,7 +99,25 @@ public class Sketch extends PApplet {
         screensizex = width;
         screensizey = height;
         menuImage = loadImage("menu.jpg");
-        image(menuImage, 0, 0, screensizex, screensizey);        
+        image(menuImage, 0, 0, screensizex, screensizey);
+        cloud = loadImage("/images/cloud.png");
+        add = loadImage("images/add.png");
+        scroll = loadImage("images/scroll.png");
+        select = loadImage("images/select.png");
+        remove = loadImage("images/remove.png");
+        play = loadImage("images/play.png");
+        tip = loadImage("images/fillInTheBlanksTip.png");
+        close = loadImage("images/remove.png");
+        letterBackDefault = loadImage("/images/letter_background_default.png");
+        letterBackIncorrect = loadImage("/images/letter_background_incorrect.png");
+        letterBackTurn = loadImage("/images/letter_background_turn.png");
+        letterBackCorrect = loadImage("/images/letter_background_correct.png");
+        
+        String lettersNums = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        for(int i = 0; i < lettersNums.length(); i++) { 
+            String c = ""+lettersNums.charAt(i);
+            lettersAndNumbers.put(c,loadImage("/images/Letters_Numbers/"+c+".png"));
+        }
         
         fiducialDictionary.put(0,Arrays.asList("CURSOR", "MENU"));
         for(int i = 0; i < 26; i++) { //1 - 52
@@ -106,6 +142,8 @@ public class Sketch extends PApplet {
         currentChoice = "";
         currentSelection.clear();
         cursorPosition = null;
+        mousePosition = null;
+        mouseWheel = 0;
         choiceButtons.clear();
         selected = false;
         saves.clear();
@@ -134,7 +172,7 @@ public class Sketch extends PApplet {
 
     @Override
     public void draw() {
-
+        
         image(menuImage, 0, 0, screensizex, screensizey);
         
         if (stage == 1) { //Choose Game
@@ -230,9 +268,8 @@ public class Sketch extends PApplet {
     
     public void addTitle(String choice) {
         
-        PImage cloud = loadImage("/images/cloud.png");
-        int cloudWidth = 600;
-        int cloudHeight = 230;
+        int cloudWidth = 700;
+        int cloudHeight = 300;
         
         image(cloud, (width/2)-(cloudWidth/2), height/5-(cloudHeight/2)-10, cloudWidth, cloudHeight);
         textFont(selectorFont,60);
@@ -276,9 +313,8 @@ public class Sketch extends PApplet {
                 float letterWidth = (width/2)-(size*(word.length()/2))+(size*i);
                     if ((word.length())%2 != 0) letterWidth -= (size/2);
 
-                PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
                 tint(255, (int)((opacity*255)/100));
-                image(letterBack, letterWidth, letterHeight, size, size);
+                image(lettersAndNumbers.get((""+c).toUpperCase()), letterWidth, letterHeight, size, size);
                 tint(255, 255);
             }
             
@@ -326,9 +362,8 @@ public class Sketch extends PApplet {
                     letterWidth = (splitWidth*(count+1))-(size*(profileName.length()/2))+(size*i);
                         if ((profileName.length())%2 != 0) letterWidth -= (size/2);
 
-                    PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
                     tint(255, 255);
-                    image(letterBack, letterWidth, letterHeight, size, size);
+                    image(lettersAndNumbers.get((""+c).toUpperCase()), letterWidth, letterHeight, size, size);
                     
                 }
 
@@ -344,9 +379,8 @@ public class Sketch extends PApplet {
                     letterWidth = (splitWidth*(count+1))-(size*(points.length()/2))+(size*i);
                         if ((points.length())%2 != 0) letterWidth -= (size/2);
 
-                    PImage letterBack = loadImage("/images/Letters_Numbers/"+(""+c).toUpperCase()+".png");
                     tint(255, 255);
-                    image(letterBack, letterWidth, letterHeight, size, size);
+                    image(lettersAndNumbers.get((""+c).toUpperCase()), letterWidth, letterHeight, size, size);
                     
                 }
 
@@ -373,7 +407,6 @@ public class Sketch extends PApplet {
         
         if (addChoices) {
             
-            PImage add = loadImage("images/add.png");
             image(add, (width/2)-(buttonSize/2), (height/2)-(size/2)-(size*3)-buttonSize, buttonSize, buttonSize);
             choiceButtons.put("add", Arrays.asList((width/2)-(buttonSize/2),(float)(height/2)-(size/2)-(size*3)-buttonSize,buttonSize,buttonSize));
             
@@ -429,10 +462,6 @@ public class Sketch extends PApplet {
             if (pos < choices.size()-1)
                 printWord(choices.get(pos+1),size,(height/2)-(size/2)+(int)((size)*1.5),50,true);
 
-            PImage scroll = loadImage("images/scroll.png");
-            PImage select = loadImage("images/select.png");
-            PImage remove = loadImage("images/remove.png");
-            PImage play = loadImage("images/play.png");
             float buttonWidth = (width)-(buttonSize*2);
             float buttonHeight = (height/2)-(buttonSize/2);
 
@@ -449,11 +478,23 @@ public class Sketch extends PApplet {
             buttonWidth = (width)-(buttonSize);
             image(scroll, buttonWidth, buttonHeight, buttonSize, buttonSize);
             choiceButtons.put("scroll", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
-
-            if (checkChoice("scroll",fiducials)) {
+            
+            if (mouseWheel != 0 || checkChoice("scroll",fiducials)) {
 
                 selected = false;
-                int scrollUpDown = checkScroll(fiducials); //1 > UP, 2 > DOWN
+                
+                int scrollUpDown = 0;
+                
+                if (mouseWheel != 0) {
+                    
+                    scrollUpDown = 0+mouseWheel;
+                    mouseWheel = 0;
+                    
+                } else {
+                    
+                    checkScroll(fiducials); //1 > UP, 2 > DOWN
+                    
+                }
 
                 if (scrollUpDown == 1) {
 
@@ -604,7 +645,7 @@ public class Sketch extends PApplet {
             
                 if (fillInTheBlanks_WordList.isEmpty() && successMovie == null) {
                     //GAME WIN
-                    successMovie = new Movie(this, theme+".mov");
+                    successMovie = new Movie(this, config.getFillInTheBlanksVidPath(theme));
                     successMovie.play();
                 } else {
                     word = fillInTheBlanks_WordList.get(0);
@@ -642,10 +683,8 @@ public class Sketch extends PApplet {
             
             choiceButtons.clear();
 
-            PImage tip = loadImage("images/fillInTheBlanksTip.png");
-            image(tip, width-tip.width-(width/7), height-tip.height-(height/7));
+            image(tip, width-tip.width-30, height-tip.height-30);
             
-            PImage close = loadImage("images/remove.png");
             int size = 70;
             float buttonSize = 200;
             float buttonWidth = (width)-buttonSize;
@@ -787,20 +826,16 @@ public class Sketch extends PApplet {
         
         switch(state) {
             
-            case 0: imagePath = "/images/letter_background_default.png";
+            case 0: image(letterBackDefault, letterWidth, letterHeight, size, size);
                 break;
-            case 1: imagePath = "/images/letter_background_correct.png";
+            case 1: image(letterBackCorrect, letterWidth, letterHeight, size, size);
                 break;
-            case 2: imagePath = "/images/letter_background_turn.png";
+            case 2: image(letterBackTurn, letterWidth, letterHeight, size, size);
                 break;
-            case 3: imagePath = "/images/letter_background_incorrect.png";
+            case 3: image(letterBackIncorrect, letterWidth, letterHeight, size, size);
                 break;
             
         }
-        
-        PImage letterBack = loadImage(imagePath);
-        
-        image(letterBack, letterWidth, letterHeight, size, size);
         
         return state;
         
@@ -814,6 +849,11 @@ public class Sketch extends PApplet {
         
         for (TuioObject to : tuioObjectList)
             detected.put(fiducialDictionary.get(to.getSymbolID()),Arrays.asList((float)to.getScreenX(width),(float)to.getScreenY(height),to.getAngle()));
+        
+        if (mousePosition != null) {
+            detected.put(fiducialDictionary.get(0),mousePosition);
+            mousePosition = null;
+        }
 
         return detected;
 
@@ -898,7 +938,20 @@ public class Sketch extends PApplet {
     public void movieEvent(Movie m) {
         m.read();
     }
-
+    
+    @Override
+    public void mouseClicked(MouseEvent event) {
+        mousePosition = Arrays.asList((float)event.getX(),(float)event.getY(),(float)0);
+    }
+    
+    public void mouseWheel(MouseEvent event) {
+        float dir = event.getAmount();
+        if (dir > 0) {
+          mouseWheel = 2;
+        } else if (dir < 0) {
+          mouseWheel = 1;
+        }
+    }
     
     //// TUIO ////
     
