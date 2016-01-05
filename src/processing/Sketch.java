@@ -1,5 +1,6 @@
 package processing;
 
+import gif.Gif;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,7 +13,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.io.File;
-import gifAnimation.*;
 import java.util.Set;
 
 public class Sketch extends PApplet {

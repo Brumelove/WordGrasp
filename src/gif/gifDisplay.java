@@ -3,11 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package gifAnimation;
+package gif;
 
-import gifAnimation.*;
 import java.io.File;
 import processing.core.*;
+import gifAnimation.*;
 
 public class gifDisplay extends PApplet {
  
