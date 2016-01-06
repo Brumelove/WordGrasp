@@ -41,7 +41,8 @@ doLexiconAdd = False
 doListVoices = False
 isCscript = True        ' Identifies if we are running CScript
 needDebugging = False
-
+needText = False
+textLine = Null
 
 Dim IsOK
 IsOK = True
@@ -58,7 +59,10 @@ For Each arg in argv
     If needDebugging Then
         printErr("arg:" & arg)
     End If
-    If needFileName Then
+    If needText Then
+    	textLine=arg
+    	needText = False
+    ElseIf needFileName Then
         pFileName=arg
         needFileName = False
     ElseIf needUnicodeFileName Then
@@ -86,6 +90,8 @@ For Each arg in argv
         If pEncoding <> "ASCII" And pEncoding <> "UTF-16LE" Then
             IsOK=False
         End If
+    ElseIf arg = "-text" Then
+    	needText = True
     ElseIf arg = "-w" Then
         If (doWaveFile Or doMultWaveFiles) Then
             IsOK=False
@@ -119,7 +125,7 @@ For Each arg in argv
         printErr("Debug selected")
     ElseIf Mid(arg,1,1) = "-" Then
         IsOK=False
-    Else 
+    Else
         IsOK=False
     End If
 '    printErr("Arg:"&arg& " IsOK:"&IsOK&" doWaveFile:"& _
@@ -127,13 +133,12 @@ For Each arg in argv
 '    " needFileName:"&needFileName)
 Next
 
-
 ' Release
 set argv = Nothing
 
 
 if needFileName Or needVolume Or needRate  _
-     Or needUnicodeFileName Or needSamples Or needChannels Or needVoice Then
+     Or needUnicodeFileName Or needSamples Or needChannels Or needVoice Or needText Then
     IsOK=False
 End If
 if IsOK And doListVoices then
@@ -274,7 +279,11 @@ Function doit
         If isCscript Then
             Set pInFile = WScript.StdIn
         Else
-            pInFile = Null
+            If IsNull(textLine) Then
+                pInFile = Null
+            Else
+                pInFile = textLine
+            End If
         End If
     End If
 
@@ -285,39 +294,43 @@ Function doit
             Call Speak(hSpeaker,sText)
         End If
     Else
-        While Not pInFile.AtEndOfStream
-            textLine = pInFile.ReadLine
-    '        // We now have something to say
-            If doMultWaveFiles Then
-                waveSeq = waveSeq + 1
-                fnNumber = "00000" & CStr(waveSeq)
-                fnNumber = Mid (fnNumber, Len(fnNumber) - 4)
-                fileName = pFileName & fnNumber & ".wav"
-                Set hSpeaker = createSpeaker(fileName)
-                if IsNull(hSpeaker) Then
-                    printErr("ERROR hSpeaker is Null")
-                    doit = False
-                    Exit Function
-                Else 
-                    if rate <> -999 Then
-                        IsOK=setRate(hSpeaker, rate)
-                    End If
-                    if IsOK And volume <> -999 Then
-                        IsOK=setVolume(hSpeaker, volume)
-                    End If
-                    if Not IsOK Then
-                        printErr("Set rate " & rate & _
-                            " or volume " & volume & " failed." & IsOK)
-                        doit = False
-                        Exit Function
-                    End If
-                End If
-            End If
-            Call Speak(hSpeaker,textLine)
-            If doMultWaveFiles Then
-                Call closeSpeaker(hSpeaker)
-            End If
-        Wend
+    	If IsNull(textLine) Then
+	        While Not pInFile.AtEndOfStream
+	            textLine = pInFile.ReadLine
+	    '        // We now have something to say
+	            If doMultWaveFiles Then
+	                waveSeq = waveSeq + 1
+	                fnNumber = "00000" & CStr(waveSeq)
+	                fnNumber = Mid (fnNumber, Len(fnNumber) - 4)
+	                fileName = pFileName & fnNumber & ".wav"
+	                Set hSpeaker = createSpeaker(fileName)
+	                if IsNull(hSpeaker) Then
+	                    printErr("ERROR hSpeaker is Null")
+	                    doit = False
+	                    Exit Function
+	                Else 
+	                    if rate <> -999 Then
+	                        IsOK=setRate(hSpeaker, rate)
+	                    End If
+	                    if IsOK And volume <> -999 Then
+	                        IsOK=setVolume(hSpeaker, volume)
+	                    End If
+	                    if Not IsOK Then
+	                        printErr("Set rate " & rate & _
+	                            " or volume " & volume & " failed." & IsOK)
+	                        doit = False
+	                        Exit Function
+	                    End If
+	                End If
+	            End If
+	            Call Speak(hSpeaker,textLine)
+	            If doMultWaveFiles Then
+	                Call closeSpeaker(hSpeaker)
+	            End If
+	        Wend
+        Else
+        	Call Speak(hSpeaker,textLine)
+        End If	
     End If
     If Not IsNull(hSpeaker) Then
         Call closeSpeaker(hSpeaker)

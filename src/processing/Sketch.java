@@ -24,7 +24,8 @@ public class Sketch extends PApplet {
     PImage select;
     PImage remove;
     PImage play;
-    PImage tip;
+    PImage fillInTheBlanksTip;
+    PImage selectorTip;
     PImage close;
     PImage letterBackDefault;
     PImage letterBackIncorrect;
@@ -44,9 +45,11 @@ public class Sketch extends PApplet {
     List<Float> cursorPosition = null;
     List<Float> mousePosition = null;
     int mouseWheel = 0;
+    boolean mouseClicked = false;
+    boolean removeFiducials = false;
     
     HashMap<String, List<Float>> choiceButtons = new HashMap();
-    boolean selected = false;
+    HashMap<String, Boolean> selectedChoices = new HashMap();
     HashMap<String, String> saves = new HashMap();
     HashMap<String, String> fillInTheBlanks_ThemeImageWords = new HashMap();
     HashMap<Integer, List<Float>> fillInTheBlanks_gapCoords = new HashMap();
@@ -106,7 +109,8 @@ public class Sketch extends PApplet {
         select = loadImage("images/select.png");
         remove = loadImage("images/remove.png");
         play = loadImage("images/play.png");
-        tip = loadImage("images/fillInTheBlanksTip.png");
+        fillInTheBlanksTip = loadImage("images/fillInTheBlanksTip.png");
+        selectorTip = loadImage("images/selectorTip.png");
         close = loadImage("images/remove.png");
         letterBackDefault = loadImage("/images/letter_background_default.png");
         letterBackIncorrect = loadImage("/images/letter_background_incorrect.png");
@@ -138,14 +142,17 @@ public class Sketch extends PApplet {
     
     public void reInit() {
         
+        stage = 1;
+        
         currentProfiles.clear();
         currentChoice = "";
         currentSelection.clear();
         cursorPosition = null;
         mousePosition = null;
         mouseWheel = 0;
+        mouseClicked = false;
         choiceButtons.clear();
-        selected = false;
+        selectedChoices.clear();
         saves.clear();
         fillInTheBlanks_ThemeImageWords.clear();
         fillInTheBlanks_gapCoords.clear();
@@ -163,6 +170,7 @@ public class Sketch extends PApplet {
         adviceGif = null;
         wordGif = null;
         successMovie = null;
+        removeFiducials = false;
 
         init = true;
         next = true;
@@ -224,25 +232,29 @@ public class Sketch extends PApplet {
 
         }
         
-        //// TUIO ////
-        textFont(font,18*scale_factor);
-        float obj_size = object_size*scale_factor;
-        float cur_size = cursor_size*scale_factor;
-
-        ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
-        for (int i=0;i<tuioObjectList.size();i++) {
-            TuioObject tobj = tuioObjectList.get(i);
-            stroke(0);
-            fill(0,0,0);
-            pushMatrix();
-            translate(tobj.getScreenX(width),tobj.getScreenY(height));
-            rotate(tobj.getAngle());
-            rect(-obj_size/2,-obj_size/2,obj_size,obj_size);
-            popMatrix();
-            fill(255);
-            text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
+        if (!removeFiducials) {
+        
+            //// TUIO ////
+            textFont(font,18*scale_factor);
+            float obj_size = object_size*scale_factor;
+            float cur_size = cursor_size*scale_factor;
+        
+            ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+            for (int i=0;i<tuioObjectList.size();i++) {
+                TuioObject tobj = tuioObjectList.get(i);
+                stroke(0);
+                fill(0,0,0);
+                pushMatrix();
+                translate(tobj.getScreenX(width),tobj.getScreenY(height));
+                rotate(tobj.getAngle());
+                rect(-obj_size/2,-obj_size/2,obj_size,obj_size);
+                popMatrix();
+                fill(255);
+                text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
+            }
+            //////////////
+            
         }
-        //////////////
 
     }
     
@@ -408,10 +420,10 @@ public class Sketch extends PApplet {
         
         if (addChoices) {
             
-            image(add, (width/2)-(buttonSize/2), (height/2)-(size/2)-(size*3)-buttonSize, buttonSize, buttonSize);
-            choiceButtons.put("add", Arrays.asList((width/2)-(buttonSize/2),(float)(height/2)-(size/2)-(size*3)-buttonSize,buttonSize,buttonSize));
+            image(add, (width/2)-(buttonSize/2)-600,(float)(height/2)-(buttonSize/2), buttonSize, buttonSize);
+            choiceButtons.put("add", Arrays.asList((width/2)-(buttonSize/2)-600,(float)(height/2)-(buttonSize/2),buttonSize,buttonSize));
             
-            if (checkChoice("add",fiducials)) {
+            if (checkChoice("add",fiducials,true)) {
             
                 addMenu = true;
                 cursorPosition = null;
@@ -423,6 +435,9 @@ public class Sketch extends PApplet {
                 speak(createProfile);
                 config.createProfile(createProfile);
                 createProfile = "";
+                
+                fiducialsDelay.clear();
+                oldFiducials.clear();
                 
             }
             
@@ -463,7 +478,7 @@ public class Sketch extends PApplet {
             if (pos < choices.size()-1)
                 printWord(choices.get(pos+1),size,(height/2)-(size/2)+(int)((size)*1.5),50,true);
 
-            float buttonWidth = (width)-(buttonSize*2);
+            float buttonWidth = (width/2)-(buttonSize/2)+600;
             float buttonHeight = (height/2)-(buttonSize/2);
 
             if (!currentSelection.contains(currentChoice)) {
@@ -475,65 +490,44 @@ public class Sketch extends PApplet {
                 image(remove, buttonWidth, buttonHeight, buttonSize, buttonSize);
                 choiceButtons.put("remove", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
             }
-
-            buttonWidth = (width)-(buttonSize);
-            image(scroll, buttonWidth, buttonHeight, buttonSize, buttonSize);
-            choiceButtons.put("scroll", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
             
-            if (mouseWheel != 0 || checkChoice("scroll",fiducials)) {
+            image(selectorTip, width-selectorTip.width-30, height-selectorTip.height-30);
 
-                selected = false;
+            int scrollUpDown = checkScroll(fiducials); //1 = DOWN, 2 = UP
+            mouseWheel = 0;
+
+            if (scrollUpDown == 1) {
                 
-                int scrollUpDown = 0;
-                
-                if (mouseWheel != 0) {
-                    
-                    scrollUpDown = 0+mouseWheel;
-                    mouseWheel = 0;
-                    
-                } else {
-                    
-                    checkScroll(fiducials); //1 > UP, 2 > DOWN
-                    
-                }
+                int newChoice = choices.indexOf(currentChoice)+1;
 
-                if (scrollUpDown == 1) {
+                if (newChoice == choices.size())
+                    newChoice = 0;
 
-                    int newChoice = choices.indexOf(currentChoice)-1;
+                currentChoice = choices.get(newChoice);
 
-                    if (newChoice == -1)
-                        newChoice = choices.size()-1;
+            } else if (scrollUpDown == 2) {
 
-                    currentChoice = choices.get(newChoice);
+                int newChoice = choices.indexOf(currentChoice)-1;
 
-                } else if (scrollUpDown == 2) {
+                if (newChoice == -1)
+                    newChoice = choices.size()-1;
 
-                    int newChoice = choices.indexOf(currentChoice)+1;
+                currentChoice = choices.get(newChoice);
 
-                    if (newChoice == choices.size())
-                        newChoice = 0;
+            }
 
-                    currentChoice = choices.get(newChoice);
-
-                }
-
-            } else if (!currentSelection.contains(currentChoice) && !selected && checkChoice("select",fiducials)) {
-
-                selected = true;
+            if (!currentSelection.contains(currentChoice) && checkChoice("select",fiducials,false)) {
+                selectedChoices.put("remove",true);
                 cursorPosition = null;
                 if (currentSelection.indexOf(currentChoice) == -1)
                     currentSelection.add(currentChoice);
 
-            } else if (currentSelection.contains(currentChoice) && !selected && checkChoice("remove",fiducials)) {
+            } else if (currentSelection.contains(currentChoice)) {
 
-                selected = true;
-                cursorPosition = null;
-                currentSelection.remove(currentChoice);
-
-            } else {
-
-                selected = false;
-                cursorPosition = null;
+                if (checkChoice("remove",fiducials,false)) {
+                    cursorPosition = null;
+                    currentSelection.remove(currentChoice);
+                }
 
             }
 
@@ -544,7 +538,7 @@ public class Sketch extends PApplet {
                 choiceButtons.put("play", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
             }
 
-            if ((!done) && (currentSelection.size() >= minChoice) && (checkChoice("play",fiducials)))
+            if ((!done) && (currentSelection.size() >= minChoice) && (checkChoice("play",fiducials,false)))
                 done = true;
 
             if (done) {
@@ -582,6 +576,7 @@ public class Sketch extends PApplet {
         createProfile = "";
         
         HashMap<List<String>,List<Float>> fiducials = checkFiducials();
+        speakNewLetters(fiducials, 2000);
         
         Map<List<String>,List<Float>> sortedfiducials = fiducials.entrySet().stream()
                                             .sorted(Entry.comparingByValue((v1,v2)->(v1.get(0)).compareTo(v2.get(0))))
@@ -610,7 +605,8 @@ public class Sketch extends PApplet {
         for (List<String>key : fiducials.keySet()) {
 
             if (!oldFiducials.contains(key) && ((fiducialsDelay.get(key) == null) || ((millis() - fiducialsDelay.get(key)) > delay))) {
-                speak(key.get(1));
+                if ((key.get(1)).length() == 1)
+                    speak(key.get(1));
                 fiducialsDelay.put(key, millis());
             }
 
@@ -634,40 +630,51 @@ public class Sketch extends PApplet {
             
         }
         
-        if (next) {
+        if (successMovie != null) {
             
-            if (wordGif == null) {
+            if (keyPressed) {
+                successMovie.dispose();
+                reInit();
+                next = false;
+            } else if (successMovie.playbin.isPlaying()) {
+                image(successMovie, (width/2)-(successMovie.width/2), (height/2)-(successMovie.height/2));
+            } else {
+                reInit();
+                next = false;
+            }
+            
+        }
+        
+        if (wordGif != null && !wordGif.isPlaying()) {
+            wordGif = null;
+            removeFiducials = false;
+            next = true;
+        }
+        
+        if (wordGif == null) {
+            
+            if (next) {
             
                 if (fillInTheBlanks_WordList.isEmpty() && successMovie == null) {
                     //GAME WIN
-                    successMovie = new Movie(this, config.getFillInTheBlanksVidPath(theme));
+                    successMovie = new Movie(this, config.getFillInTheBlanksVidPath(""+theme));
+                    successMovie.noLoop();
                     successMovie.play();
+                    removeFiducials = true;
                 } else {
                     word = fillInTheBlanks_WordList.get(0);
                     img = loadImage(fillInTheBlanks_ThemeImageWords.get(word),"jpg");
                     fillInTheBlanks_gapCoords.clear();
                 }
+                next = false;
                 
-            } else {
-                
-                image(wordGif, width/2 - wordGif.width/2, height / 2 - wordGif.height / 2);
-                if (!wordGif.isPlaying())
-                    wordGif = null;
-                
-            }         
-            
-        }
-        
-        if (successMovie != null) {
-            
-            if (successMovie.available()) {
-                image(successMovie, (width/2)-(successMovie.width/2), (height/2)-(successMovie.height/2));
-            } else {
-                stage = 1;
-                reInit();
             }
-            
-            
+
+        } else {
+
+            image(wordGif, width/2 - wordGif.width/2, height / 2 - wordGif.height / 2);
+            next = false;
+
         }
         
         if (stage != 1 && wordGif == null && !fillInTheBlanks_WordList.isEmpty()) {
@@ -678,7 +685,7 @@ public class Sketch extends PApplet {
             
             choiceButtons.clear();
 
-            image(tip, width-tip.width-30, height-tip.height-30);
+            image(fillInTheBlanksTip, width-fillInTheBlanksTip.width-30, height-fillInTheBlanksTip.height-30);
             
             int size = 70;
             float buttonSize = 200;
@@ -688,10 +695,9 @@ public class Sketch extends PApplet {
             image(close, buttonWidth, buttonHeight, buttonSize, buttonSize);
             choiceButtons.put("close", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
 
-            if (checkChoice("close",fiducials)) {
+            if (checkChoice("close",fiducials,false)) {
 
-                cursorPosition = null;
-                stage = 1;
+                reInit();
                 
             } else {
 
@@ -702,8 +708,10 @@ public class Sketch extends PApplet {
                 for(int i = 0; i < word.length(); i++)
                     if ((createLetterContainer(i,word,100,30) != 1) && (next == true)) next = false;
 
-                if (next) { //Check if word is correct
+                if (next || keyPressed) { //Check if word is correct
 
+                    next = true;
+                    
                     for(String profile : profiles) { //If 2P Mode then check which fiducials belong to whom
 
                         String colour = profilesColours.get(profile);
@@ -721,8 +729,12 @@ public class Sketch extends PApplet {
                     wordGif = new Gif(this, config.getFillInTheBlanksGifPath(theme,word));
                     wordGif.play();
                     wordGif.ignoreRepeat();
+                    removeFiducials = true;
 
                     fillInTheBlanks_WordList.remove(word);
+                    
+                    fiducialsDelay.clear();
+                    oldFiducials.clear();
 
                 } //next word
                 
@@ -834,32 +846,48 @@ public class Sketch extends PApplet {
         
         HashMap<List<String>,List<Float>> detected = new HashMap();
         
-        ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+        if (!removeFiducials) {
         
-        for (TuioObject to : tuioObjectList)
-            detected.put(fiducialDictionary.get(to.getSymbolID()),Arrays.asList((float)to.getScreenX(width),(float)to.getScreenY(height),to.getAngle()));
-        
-        if (mousePosition != null) {
-            detected.put(fiducialDictionary.get(0),mousePosition);
-            mousePosition = null;
+            ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+
+            for (TuioObject to : tuioObjectList)
+                if (fiducialDictionary.get(to.getSymbolID()) != null)
+                    detected.put(fiducialDictionary.get(to.getSymbolID()),Arrays.asList((float)to.getScreenX(width),(float)to.getScreenY(height),to.getAngle()));
+
+            if (mousePosition != null) {
+                detected.put(fiducialDictionary.get(0),mousePosition);
+                if (!mousePressed)
+                    mousePosition = null;
+            }
+            
         }
 
         return detected;
 
     }
     
-    public boolean checkChoice(String button, HashMap<List<String>,List<Float>> fiducials) {
+    public boolean checkChoice(String button, HashMap<List<String>,List<Float>> fiducials, boolean hold) {
+        
+        if (mousePressed && !hold)
+            return false;
         
         List<Float> elementPosition = choiceButtons.get(button);
         List<Float> cursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
-        
+
         if ((cursorPosition != null) && (elementPosition != null)) {
             if (((cursorPosition.get(0) > elementPosition.get(0)) && (cursorPosition.get(0) < (elementPosition.get(0)+elementPosition.get(2)))) && // X Coordinate
                 ((cursorPosition.get(1) > elementPosition.get(1)) && (cursorPosition.get(1) < (elementPosition.get(1)+elementPosition.get(3))))) { // Y Coordinate
+                
+                if (selectedChoices.get(button) == null || !selectedChoices.get(button) || mouseClicked || (mousePressed && hold)) {
+                    if (!hold)
+                        selectedChoices.put(button,true);
+                    mouseClicked = false;
+                    return true;
+                }
 
-                return true;
+            } else if (!hold)
+                selectedChoices.put(button,false);
 
-            }
         }
         
         return false;
@@ -867,6 +895,10 @@ public class Sketch extends PApplet {
     }
     
     public int checkScroll(HashMap<List<String>,List<Float>> fiducials) {
+        
+        if (mouseWheel != 0) {
+            return mouseWheel;
+        }
         
         List<Float> newCursorPosition = fiducials.get(Arrays.asList("CURSOR", "MENU"));
         
@@ -917,10 +949,8 @@ public class Sketch extends PApplet {
     
     public void speak(String text) {
         File ttsDir = new File(""+new File("").getAbsolutePath()+"\\tts");
-        Runtime rt = Runtime.getRuntime();
         try {
-            Process pr = rt.exec("cmd /c echo "+text+" > \"text.txt\"",new String[]{},ttsDir);
-            pr = rt.exec("cscript speak.vbs",new String[]{},ttsDir);
+            Process pr = Runtime.getRuntime().exec("cscript ptts.vbs -voice \"IVONA 2 Emma\" -text \""+text+"\"",new String[]{},ttsDir);
         } catch (Exception e) {e.printStackTrace();}
     }
     
@@ -931,14 +961,20 @@ public class Sketch extends PApplet {
     @Override
     public void mouseClicked(MouseEvent event) {
         mousePosition = Arrays.asList((float)event.getX(),(float)event.getY(),(float)0);
+        mouseClicked = true;
+    }
+    
+    @Override
+    public void mousePressed(MouseEvent event) {
+        mousePosition = Arrays.asList((float)event.getX(),(float)event.getY(),(float)0);
     }
     
     public void mouseWheel(MouseEvent event) {
         float dir = event.getAmount();
         if (dir > 0) {
-          mouseWheel = 2;
-        } else if (dir < 0) {
           mouseWheel = 1;
+        } else if (dir < 0) {
+          mouseWheel = 2;
         }
     }
     
