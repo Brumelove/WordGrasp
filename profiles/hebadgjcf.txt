@@ -4,8 +4,11 @@
 -england
 -latvia
 -germany
+-cat
+-rabbit
 -luxembourg
 -france
 -austria
 -italy
+-lion
 

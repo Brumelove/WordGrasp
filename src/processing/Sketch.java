@@ -627,17 +627,24 @@ public class Sketch extends PApplet {
             fillInTheBlanks_ThemeImageWords = config.loadFillInTheBlanks().get(theme);
             fillInTheBlanks_WordList = config.getIdealWordOrder(profiles,new ArrayList(fillInTheBlanks_ThemeImageWords.keySet())); //List words and images (preferably not already in vocab list)
             init = false;
+            next = true;
             
         }
         
         if (successMovie != null) {
             
-            if (keyPressed) {
+            float buttonSize = 200;
+            image(close, (width)-buttonSize, 0, buttonSize, buttonSize);
+            choiceButtons.put("close", Arrays.asList((width)-buttonSize,(float)0,buttonSize,buttonSize));
+            
+            removeFiducials = false;
+            if (keyPressed || checkChoice("close",checkFiducials(),false)) {
                 successMovie.dispose();
                 reInit();
                 next = false;
             } else if (successMovie.playbin.isPlaying()) {
                 image(successMovie, (width/2)-(successMovie.width/2), (height/2)-(successMovie.height/2));
+                removeFiducials = true;
             } else {
                 reInit();
                 next = false;
@@ -687,13 +694,9 @@ public class Sketch extends PApplet {
 
             image(fillInTheBlanksTip, width-fillInTheBlanksTip.width-30, height-fillInTheBlanksTip.height-30);
             
-            int size = 70;
             float buttonSize = 200;
-            float buttonWidth = (width)-buttonSize;
-            float buttonHeight = 0;
-
-            image(close, buttonWidth, buttonHeight, buttonSize, buttonSize);
-            choiceButtons.put("close", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+            image(close, (width)-buttonSize, 0, buttonSize, buttonSize);
+            choiceButtons.put("close", Arrays.asList((width)-buttonSize,(float)0,buttonSize,buttonSize));
 
             if (checkChoice("close",fiducials,false)) {
 
