@@ -1,5 +1,12 @@
 #points
 -30
 #vocablist
+-england
 -cat
+-latvia
+-germany
+-luxembourg
+-france
+-austria
+-italy
 

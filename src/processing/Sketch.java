@@ -24,6 +24,8 @@ public class Sketch extends PApplet {
     PImage select;
     PImage remove;
     PImage play;
+    Gif loadingGif;
+    int loadingFrame = -1;
     PImage fillInTheBlanksTip;
     PImage selectorTip;
     PImage close;
@@ -109,6 +111,7 @@ public class Sketch extends PApplet {
         select = loadImage("images/select.png");
         remove = loadImage("images/remove.png");
         play = loadImage("images/play.png");
+        loadingGif = new Gif(this, new File("").getAbsolutePath()+"\\images\\loading.gif");
         fillInTheBlanksTip = loadImage("images/fillInTheBlanksTip.png");
         selectorTip = loadImage("images/selectorTip.png");
         close = loadImage("images/remove.png");
@@ -137,6 +140,8 @@ public class Sketch extends PApplet {
         tuioClient  = new TuioProcessing(this);
         
         //////////////
+        
+        loadingFrame = 0;
         
     }
     
@@ -183,76 +188,107 @@ public class Sketch extends PApplet {
         
         image(menuImage, 0, 0, screensizex, screensizey);
         
-        if (stage == 1) { //Choose Game
+        if (loadingFrame < 0) {
+        
+            switch (stage) {
 
-            if (selector(0,1,1,false))
-                stage = 2;
+                case 1: //Choose Game
 
-        } else if (stage == 2) {
+                    if (selector(0,1,1,false))
+                        stage = 2;
 
-            switch(game) { // Choose Profile(s)
-                
-                case "WORD FILL":   if (selector(1,1,2,true))
-                                        stage = 3;
-                                    break;
-                case "DICTIONARY": if (selector(1,1,1,false))
-                                        stage = 3;
-                                    break;
-                
+                    break;
+
+                case 2: // Choose Profile(s)
+
+                    switch(game) { 
+
+                        case "WORD FILL":   if (selector(1,1,2,true))
+                            stage = 3;
+                        break;
+                        case "DICTIONARY": if (selector(1,1,1,false))
+                            stage = 3;
+                        break;
+
+                    }
+
+                    break;
+
+                case 3: //Choose Theme or Play
+
+                    switch(game) {
+
+                        case "WORD FILL":   if (selector(2,1,1,false))
+                            stage = 4;
+                        break;
+
+                        case "DICTIONARY":  VocabList();
+                        break;
+
+                    }
+
+                    break;
+
+                case 4: //Play
+
+                    switch(game) {
+
+                        case "WORD FILL":   profilesColours = new HashMap();
+                        profilesColours.put(currentProfiles.get(0),"RED");
+                        if (currentProfiles.size() > 1)
+                            profilesColours.put(currentProfiles.get(1),"BLUE");
+
+                        printScores();
+
+                        FillInTheBlanksGame();
+                        break;
+
+                    }
+
+                    break;
+
+                default:
+                    break;
+
             }
             
-        } else if (stage == 3) { //Choose Theme or Play
-            
-            switch(game) {
-                
-                case "WORD FILL":   if (selector(2,1,1,false))
-                                        stage = 4;
-                                    break;
-                    
-                case "DICTIONARY":  VocabList();
-                                    break;
-                
-            }
+            if (!removeFiducials) {
+        
+                //// TUIO ////
+                textFont(font,18*scale_factor);
+                float obj_size = object_size*scale_factor;
+                float cur_size = cursor_size*scale_factor;
 
-        } else if (stage == 4) { //Play
-            
-            switch(game) {
-                
-                case "WORD FILL":   profilesColours = new HashMap();
-                                    profilesColours.put(currentProfiles.get(0),"RED");
-                                    if (currentProfiles.size() > 1)
-                                        profilesColours.put(currentProfiles.get(1),"BLUE");
-                                    
-                                    printScores();
-                                    
-                                    FillInTheBlanksGame();
-                                    break;
-                
-            }
+                ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
+                for (int i=0;i<tuioObjectList.size();i++) {
+                    TuioObject tobj = tuioObjectList.get(i);
+                    stroke(0);
+                    fill(0,0,0);
+                    pushMatrix();
+                    translate(tobj.getScreenX(width),tobj.getScreenY(height));
+                    rotate(tobj.getAngle());
+                    rect(-obj_size/2,-obj_size/2,obj_size,obj_size);
+                    popMatrix();
+                    fill(255);
+                    text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
+                }
+                //////////////
 
-        }
-        
-        if (!removeFiducials) {
-        
-            //// TUIO ////
-            textFont(font,18*scale_factor);
-            float obj_size = object_size*scale_factor;
-            float cur_size = cursor_size*scale_factor;
-        
-            ArrayList<TuioObject> tuioObjectList = tuioClient.getTuioObjectList();
-            for (int i=0;i<tuioObjectList.size();i++) {
-                TuioObject tobj = tuioObjectList.get(i);
-                stroke(0);
-                fill(0,0,0);
-                pushMatrix();
-                translate(tobj.getScreenX(width),tobj.getScreenY(height));
-                rotate(tobj.getAngle());
-                rect(-obj_size/2,-obj_size/2,obj_size,obj_size);
-                popMatrix();
-                fill(255);
-                text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
             }
-            //////////////
+            
+        } else {
+            
+            fill(0);
+            rect(0,0,width,height);
+            
+            if (!loadingGif.isPlaying()) {
+                loadingGif.play();
+                loadingGif.ignoreRepeat();
+            }
+            
+            if (loadingFrame++ < 20) {
+                image(loadingGif, (width/2)-(loadingGif.width/2), (height/2)-(loadingGif.height/2));
+            } else loadingFrame = -1;
             
         }
 
@@ -549,18 +585,23 @@ public class Sketch extends PApplet {
                             game = currentSelection.get(0);
                             currentChoice = "";
                             currentSelection.clear();
-                            return true;
+                            break;
                     case 1: //Select Profiles
                             currentChoice = "";
                             currentSelection.clear();
-                            return true;
+                            break;
                     case 2: //Select Theme
                             theme = currentSelection.get(0);
                             currentChoice = "";
                             currentSelection.clear();
-                            return true;
+                            break;
+                    default: return false;
 
                 }
+                
+                loadingFrame = 0;
+                return true;
+                
             }
             
         }
@@ -752,8 +793,6 @@ public class Sketch extends PApplet {
 
     public void StoryModeGame() {
 
-        HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
-
         //Choose theme
         //Start game
         //Display word and image (preferably not already in vocab list)
@@ -761,12 +800,171 @@ public class Sketch extends PApplet {
         //If 2P Mode then check which fiducials belong to whom
         //Increment points and save to text file
         //Next word (10 words per session)
+        
     }
 
     public void VocabList() {
 
         //User scrolls through his own vocab list
         //He can view associated picture and an example sentence where that word is used
+        
+        /*
+        List<String> vocablist = config.getVocabList(currentProfiles.get(0));
+        HashMap<String, HashMap<String, String>> themeImageWords = config.loadFillInTheBlanks();
+        HashMap<String,String> words = new HashMap();
+        
+        for (Map.Entry<String, HashMap<String, String>> entry : themeImageWords.entrySet()) {
+            
+            String theme = entry.getKey();
+            HashMap<String, String> hash = entry.getValue();
+            
+            for(String w : vocablist) {
+                
+                
+                
+            }
+            
+            hash.get(theme);
+            
+        }
+        
+        HashMap<List<String>,List<Float>> fiducials = checkFiducials();
+        choiceButtons.clear();
+        
+        List<String> choices = new ArrayList();
+        int size = 70;
+        float buttonSize = 100;
+        
+        if (!addMenu) {
+        
+            switch(sel) {
+
+                case 0: //Select Game
+                        addTitle("Select Game");
+                        choices = new ArrayList(Arrays.asList("WORD FILL", "DICTIONARY"));
+                        break;
+                case 1: //Select Profiles
+                        addTitle("Select Profiles");
+                        currentProfiles.clear();
+                        currentProfiles.addAll(currentSelection);
+                        choices = new ArrayList(config.loadAllProfiles().keySet());
+                        if (choices.isEmpty()) {
+                            currentChoice = "";
+                            currentSelection.clear();
+                            return true;
+                        }
+                        break;
+                case 2: //Select Theme
+                        addTitle("Select Theme");
+                        choices = new ArrayList(config.loadFillInTheBlanks().keySet());
+                        break;
+
+            }
+
+            if (currentChoice.equals(""))
+                currentChoice = choices.get(0);
+            int pos = choices.indexOf(currentChoice);
+            if (pos > 0)
+                printWord(choices.get(pos-1),size,(height/4)-(size/2)-(int)((size)*1.5),50,true);
+            printWord(currentChoice,size,(height/4)-(size/2),100,true);
+            if (pos < choices.size()-1)
+                printWord(choices.get(pos+1),size,(height/4)-(size/2)+(int)((size)*1.5),50,true);
+
+            float buttonWidth = (width/2)-(buttonSize/2)+600;
+            float buttonHeight = (height/2)-(buttonSize/2);
+
+            if (!currentSelection.contains(currentChoice)) {
+                if(currentSelection.size() < maxChoice) {
+                    image(select, buttonWidth, buttonHeight, buttonSize, buttonSize);
+                    choiceButtons.put("select", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+                }
+            } else {
+                image(remove, buttonWidth, buttonHeight, buttonSize, buttonSize);
+                choiceButtons.put("remove", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+            }
+            
+            image(selectorTip, width-selectorTip.width-30, height-selectorTip.height-30);
+
+            int scrollUpDown = checkScroll(fiducials); //1 = DOWN, 2 = UP
+            mouseWheel = 0;
+
+            if (scrollUpDown == 1) {
+                
+                int newChoice = choices.indexOf(currentChoice)+1;
+
+                if (newChoice == choices.size())
+                    newChoice = 0;
+
+                currentChoice = choices.get(newChoice);
+
+            } else if (scrollUpDown == 2) {
+
+                int newChoice = choices.indexOf(currentChoice)-1;
+
+                if (newChoice == -1)
+                    newChoice = choices.size()-1;
+
+                currentChoice = choices.get(newChoice);
+
+            }
+
+            if (!currentSelection.contains(currentChoice) && checkChoice("select",fiducials,false)) {
+                selectedChoices.put("remove",true);
+                cursorPosition = null;
+                if (currentSelection.indexOf(currentChoice) == -1)
+                    currentSelection.add(currentChoice);
+
+            } else if (currentSelection.contains(currentChoice)) {
+
+                if (checkChoice("remove",fiducials,false)) {
+                    cursorPosition = null;
+                    currentSelection.remove(currentChoice);
+                }
+
+            }
+
+            if (currentSelection.size() >= minChoice) {
+                buttonWidth = (width/2)-(buttonSize/2);
+                buttonHeight = (height/2)-(size/2)+(int)((size)*1.5)+150;
+                image(play, buttonWidth, buttonHeight, buttonSize, buttonSize);
+                choiceButtons.put("play", Arrays.asList(buttonWidth,buttonHeight,buttonSize,buttonSize));
+            }
+
+            if ((!done) && (currentSelection.size() >= minChoice) && (checkChoice("play",fiducials,false)))
+                done = true;
+
+            if (done) {
+
+                switch(sel) {
+
+                    case 0: //Select Game
+                            game = currentSelection.get(0);
+                            currentChoice = "";
+                            currentSelection.clear();
+                            break;
+                    case 1: //Select Profiles
+                            currentChoice = "";
+                            currentSelection.clear();
+                            break;
+                    case 2: //Select Theme
+                            theme = currentSelection.get(0);
+                            currentChoice = "";
+                            currentSelection.clear();
+                            break;
+                    default: return false;
+
+                }
+                
+                loadingFrame = 0;
+                return true;
+                
+            }
+            
+        }
+        
+        return false;
+        */
+        
     }
     
     public void createImageContainer(int imageFrameWidth, int imageFrameHeight) {

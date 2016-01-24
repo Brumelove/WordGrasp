@@ -192,6 +192,12 @@ public class ConfigLoaderSaver {
         
     }
     
+    public List<String> getVocabList(String profile) {
+        
+        return new ArrayList(loadProfile(profile).get("vocablist"));
+        
+    }
+    
     public List<String> getIdealWordOrder(List<String>profileNames, List<String>words) {
         
         Collections.sort(words, (String s1, String s2) -> s1.length() - s2.length());
